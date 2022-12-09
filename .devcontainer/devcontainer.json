@@ -1,0 +1,38 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"context": "..",
+	"name": "Python 3",
+	// "image": "mcr.microsoft.com/devcontainers/python:0-3.11",
+	"dockerFile": "../dockerfile",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
+		"ghcr.io/devcontainers/features/git-lfs:1": {},
+		"ghcr.io/rio/features/chezmoi:1": {},
+		"ghcr.io/devcontainers-contrib/features/poetry:1": {}
+	},
+
+	// Features to add to the dev container. More infow: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	"remoteUser": "jovyan",
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Uncomment the next line to run commands after the container is created - for example installing curl.
+	// "postCreateCommand": [],
+	
+	"runArgs": [ "--cap-add=NET_ADMIN", "--privileged", "--gpus", "all"]
+
+}
