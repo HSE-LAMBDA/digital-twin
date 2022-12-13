@@ -1,24 +1,28 @@
 import pandera as pa
 from pandera.typing import Series
 
-class DataSchema(pa.SchemaModel):
+
+""" Dependent variables used as target for the training process."""
+POOL_DEPENDENT_VARS = set(["iops", "lat"])
+POOL_INDEPENDENT_VARS = set(["block_size", "n_jobs", "iodepth", "read_fraction", "load_type", "io_type", "raid", "n_disks", "device_type", "offset", "id"])
+class PoolDataSchema(pa.SchemaModel):
     """ Data schema for the data.
     This schema is used to validate the data.
     """
-    iops: Series[int] = pa.Field(ge=0)
-    lat: Series[float] = pa.Field(ge=0)
-    block_size: Series[int] = pa.Field(ge=0)
-    n_jobs: Series[int] = pa.Field(ge=0)
-    iodepth: Series[int] = pa.Field(ge=0)
+    iops: Series[int] = pa.Field(gt=0, raise_warning=True)
+    lat: Series[float] = pa.Field(gt=0, raise_warning=True)
+    block_size: Series[int] = pa.Field(gt=0)
+    n_jobs: Series[int] = pa.Field(gt=0)
+    iodepth: Series[int] = pa.Field(gt=0)
     read_fraction: Series[int] = pa.Field(ge=0, le=100)
     load_type: Series[str] = pa.Field()
     io_type: Series[str] = pa.Field()
     raid: Series[str] = pa.Field()
-    n_disks: Series[int] = pa.Field(ge=0)
+    n_disks: Series[int] = pa.Field(gt=0)
     device_type: Series[str] = pa.Field()
     offset: Series[int] = pa.Field(ge=0)
     id: Series[str] = pa.Field()
-    
+
     @pa.check("raid", "raid")
     def check_raid(cls, a: Series) -> bool:
         "RAID configuration must be in the following format 4+1"
