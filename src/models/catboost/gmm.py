@@ -10,9 +10,8 @@ class GMM:
 
     def __init__(
         self,
-        X,
-        n_components,
-        covariance_type,
+        n_components=2,
+        covariance_type="full",
         warm_start=True,
         n_init=5,
         init_params="kmeans",
@@ -21,6 +20,9 @@ class GMM:
         elliptic_envelope_contamination=0.05,
         random_state=666,
     ):
+        self.use_elliptic_envelope = use_elliptic_envelope
+        self.elliptic_envelope_contamination = elliptic_envelope_contamination
+        self.random_state = random_state
         self.model = GaussianMixture(
             n_components=n_components,
             covariance_type=covariance_type,
@@ -30,22 +32,35 @@ class GMM:
             n_init=n_init,
             random_state=random_state,
         )
-
-        self.use_elliptic_envelope = use_elliptic_envelope
-        if use_elliptic_envelope:
+    
+    def fit(self, X):
+        """ Fit the GMM. """
+        if self.use_elliptic_envelope:
             try:
                 self.elliptic_envelope = EllipticEnvelope(
-                    contamination=elliptic_envelope_contamination, random_state=random_state
+                    contamination=self.elliptic_envelope_contamination, random_state=self.random_state
                 )
                 mask = self.elliptic_envelope.fit_predict(X)
                 X = X[mask == 1]
             except ValueError:
                 logger.error("Not enough data to fit EllipticEnvelope")
                 logger.error(X.describe())
-                
         self.model.fit(X)
-        
+        logger.info(f"Model converged: {self.model.converged_}")
     
+    def init_from_params(self, weights, means, precisions_cholesky):
+        self.model.weights_ = weights 
+        self.model.means_ = means
+        self.model.precisions_cholesky_ = self.triu_to_full_precisions_cholesky(precisions_cholesky)
+        covariances = np.linalg.inv(self.model.precisions_cholesky_)
+        self.model.covariances_ = covariances
+        logger.info(f"Model parameters initialized from params")
+        
+    def sample(self, n_samples: int = 1000):
+        """ Sample from the GMM. """
+        samples, _ = self.model.sample(n_samples)
+        return samples
+
     @property
     def weights(self):
         return self.model.weights_
@@ -60,20 +75,13 @@ class GMM:
     
     @property
     def precisions_cholesky(self):
-        return self.model.precisions_cholesky_
+        rows, cols = np.triu_indices(self.model.precisions_cholesky_.shape[1])
+        return self.model.precisions_cholesky_[:, rows, cols]
     
-    @weights.setter
-    def weights(self, weights):
-        self.model.weights_ = weights
-    
-    @means.setter
-    def means(self, means):
-        self.model.means_ = means
-    
-    @covariances.setter
-    def covariances(self, covariances):
-        self.model.covariances_ = covariances
-        
-    @precisions_cholesky.setter
-    def precisions_cholesky(self, precisions_cholesky):
-        self.model.precisions_cholesky_ = precisions_cholesky
+    def triu_to_full_precisions_cholesky(self, upper_triangular_elements):
+        # https://oeis.org/A003056
+        n = np.floor((np.sqrt(1+8*upper_triangular_elements.shape[1])-1)/2).astype(int)
+        reconstructed_matrices = np.zeros((upper_triangular_elements.shape[0], n, n))
+        reconstructed_matrices[:, *np.triu_indices(n)] = upper_triangular_elements
+        # self.model.precisions_cholesky_ = reconstructed_matrices
+        return reconstructed_matrices
