@@ -32,4 +32,36 @@ class PoolDataSchema(pa.SchemaModel):
     def check_load_type(cls, a: Series) -> bool:
         "Load type must be either load or unload"
         return a.map(lambda x: x in ('random', 'sequential')).all()
+
+class CacheDataSchema(pa.SchemaModel):
+    # head of dataset/cache_data.csv file
+    # iops,lat,block_size,n_jobs,iodepth,read_fraction,load_type,io_type,t_raid,n_disks,device_type,offset,id
+    # 712511,386627.74,8,46,6,100,random,read,4+1,24,nvme,0,hse-09142022-013313-z3769
+    """ Data schema for the data.
+    This schema is used to validate the data.
+    """
+    iops: Series[int] = pa.Field(gt=0, raise_warning=True)
+    lat: Series[float] = pa.Field(gt=0, raise_warning=True)
+    block_size: Series[int] = pa.Field(gt=0)
+    n_jobs: Series[int] = pa.Field(gt=0)
+    iodepth: Series[int] = pa.Field(gt=0)
+    read_fraction: Series[int] = pa.Field(ge=0, le=100)
+    load_type: Series[str] = pa.Field()
+    io_type: Series[str] = pa.Field()
+    t_raid: Series[str] = pa.Field()
+    n_disks: Series[int] = pa.Field(gt=0)
+    device_type: Series[str] = pa.Field()
+    offset: Series[int] = pa.Field(ge=0)
+    id: Series[str] = pa.Field()
+
+    @pa.check("t_raid", "t_raid")
+    def check_raid(cls, a: Series) -> bool:
+        "RAID configuration must be in the following format 4+1"
+        return a.str.contains(r"\d+\+\d+").all()
     
+    @pa.check("load_type", "load_type")
+    def check_load_type(cls, a: Series) -> bool:
+        "Load type must be either load or unload"
+        return a.map(lambda x: x in ('random', 'sequential')).all()
+
+
