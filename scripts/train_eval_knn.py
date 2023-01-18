@@ -16,6 +16,8 @@ import pickle
 RANDOM_STATE = 42
 RESULT_PATH = 'output/knn.json'
 CHECKPOINTS_PATH = 'checkpoints/knn_%s.pkl'
+if not os.path.isdir('output'): os.mkdir('output')
+if not os.path.isdir('checkpoints'): os.mkdir('checkpoints')
 TEST_FRACTION = 0.03
 
 if __name__ == '__main__':
@@ -26,20 +28,22 @@ if __name__ == '__main__':
         df = pd.read_csv(filepath)
         if 'pool' in filepath:
             schema = PoolDataSchema
-            filename = '_'.join(filepath.split('/')[-3:-1])
+            filename = '_'.join(filepath.split('/')[-2:])
         elif filepath.endswith('cache_data.csv'):
             schema = CacheDataSchema
             filename = 'cache'
         schema.validate(df)
+        def scoring_fn(y_true, y_pred):
+            return -meape(y_true.values, y_pred)[0].mean()
         model = Pipeline([
             ('encoding', OneHotEncoder(sparse=False)),
             ('scaling', StandardScaler()),
-            ('model', GridSearchCV(KNeighborsRegressor(), 
+            ('model', GridSearchCV(KNeighborsRegressor(),
                                    param_grid={
-                                       'n_neighbors': [2, 5, 7, 9, 10, 20],
-                                       'p': [1, 2, 3]
+                                       'n_neighbors': [2, 5, 7, 10, 15, 20],
+                                       'p': [1, 2]
                                    },
-                                   scoring=make_scorer(lambda y_true, y_pred: -meape(y_true.values, y_pred)[0].mean())))
+                                   scoring=make_scorer(scoring_fn)))
         ])
         X, y, ids = df.drop(['iops', 'lat', 'id'], 1), df[['iops', 'lat']], df['id']
         train_ids, test_ids = train_test_split(list(set(ids)), test_size=TEST_FRACTION, random_state=RANDOM_STATE)

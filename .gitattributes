@@ -1,2 +1,4 @@
 *.csv filter=lfs diff=lfs merge=lfs -text
 dataset/cache_data.csv filter=lfs diff=lfs merge=lfs -text
+checkpoints/ filter=lfs diff=lfs merge=lfs -text
+output filter=lfs diff=lfs merge=lfs -text
