@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import sys; sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from src.data import PoolDataSchema, CacheDataSchema
-from src.utils.metrics import mean_estimation_absolute_percentage_error as meape
+from src.utils.metrics import absolute_percentage_error as ape, mean_estimation_absolute_percentage_error as meape, std_estimation_absolute_percentage_error as seape
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.neighbors import KNeighborsRegressor
@@ -28,13 +28,13 @@ if __name__ == '__main__':
         df = pd.read_csv(filepath)
         if 'pool' in filepath:
             schema = PoolDataSchema
-            filename = '_'.join(filepath.split('/')[-2:])
+            filename = '_'.join(filepath.split('/')[-2:]).strip('.csv')
         elif filepath.endswith('cache_data.csv'):
             schema = CacheDataSchema
             filename = 'cache'
         schema.validate(df)
         def scoring_fn(y_true, y_pred):
-            return -meape(y_true.values, y_pred)[0].mean()
+            return -ape(y_true.values, y_pred).mean()
         model = Pipeline([
             ('encoding', OneHotEncoder(sparse=False)),
             ('scaling', StandardScaler()),
@@ -51,12 +51,20 @@ if __name__ == '__main__':
         y_train, y_test = y[ids.isin(train_ids)], y[ids.isin(test_ids)]
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        meape_iops_mean, meape_iops_std = meape(y_test.values[:, 0], y_pred[:, 0])
-        meape_lat_mean, meape_lat_std = meape(y_test.values[:, 1], y_pred[:, 1])
+        meape_iops = meape(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0])
+        meape_lat = meape(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1])
+    
+        seape_iops = seape(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0])
+        seape_lat = seape(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1])
+    
         with open(CHECKPOINTS_PATH%filename, 'wb') as f:
             pickle.dump(model, f)
-        result[filename] = {'IOPS': (meape_iops_mean, meape_iops_std), 'LAT': (meape_lat_mean, meape_lat_std)}
-        print(f'MEAPE_IOPS: {meape_iops_mean:.2f}±{meape_iops_std:.2f}')
-        print(f'MEAPE_LAT: {meape_lat_mean:.2f}±{meape_lat_std:.2f}')
+        result[filename] = {'MEAPE_IOPS': meape_iops, 'MEAPE_LAT': meape_lat, 'SEAPE_IOPS': seape_iops, 'SEAPE_LAT': seape_lat}
+        print(f'MEAPE_IOPS: {meape_iops:.2f}')
+        print(f'MEAPE_LAT: {meape_lat:.2f}')
+        print(f'SEAPE_IOPS: {seape_iops:.2f}')
+        print(f'SEAPE_LAT: {seape_lat:.2f}')
+
+
     with open(RESULT_PATH, 'w') as f:
         f.write(json.dumps(result, sort_keys=True, indent=4))
