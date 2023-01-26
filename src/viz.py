@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import similaritymeasures
-
+from sklearn.preprocessing import StandardScaler
 from ssd_sim.utils import metrics, fd
-
 
 
 def basic_plots(y_true, y_pred, title="", data=None):
@@ -95,6 +94,9 @@ def test_pipeline(model, test, result_dir, random_test=None):
 
             cond = trun_io[x_cols]
             y_test = trun_io[y_cols].values
+            
+            y_scaler = StandardScaler()
+            y_scaled = y_scaler.fit_transform(y_test)
 
             y_pred_test = model.sample(n_samples=y_test.shape[0], iodepth=cond['iodepth'].values[0],
                                        block_size=cond['block_size'].values[0],
@@ -102,6 +104,8 @@ def test_pipeline(model, test, result_dir, random_test=None):
                                        io_type=cond['io_type'].values[0],
                                        load_type=cond['load_type'].values[0],
                                        n_jobs=cond['n_jobs'].values[0])
+            
+            y_pred_test_scaled = y_scaler.transform(y_pred_test)
 
             title = 'Write'
             if io_type == 0:
@@ -116,7 +120,7 @@ def test_pipeline(model, test, result_dir, random_test=None):
             report_run = []
 
             mu, std = metrics.mean_estimation_absolute_percentage_error(y_test, y_pred_test, n_iters=100)
-            print(f'Frechet distance: {fd.frdist(y_test, y_pred_test)}')
+            print(f'Frechet distance: {fd.frdist(y_scaled, y_pred_test_scaled)}')
             print(f'Frechet distance-2nd_opt: {similaritymeasures.frechet_dist(y_test, y_pred_test)}')
             print(r"IOPS    MEAPE: %.2f +- %.2f %%" % (mu[0], std[0]))
             print(r"Latency MEAPE: %.2f +- %.2f %%" % (mu[1], std[1]))
