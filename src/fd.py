@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.utils import resample
 
 __all__ = ['frdist']
 
@@ -97,3 +98,20 @@ def frdist(p, q):
 
     dist = _c(ca, len_p-1, len_q-1, p, q)
     return dist
+
+
+def bootstrap_frdist(p, q, n_iters=100):
+    frd = []
+    
+    inds = np.arange(len(p))
+    for i in range(n_iters):
+        inds_boot = resample(inds)
+        
+        y_true_boot = p[inds_boot]
+        y_pred_boot = q[inds_boot]
+        
+        ifrd = frdist(y_true_boot, y_pred_boot)
+        frd.append(ifrd)
+        
+    frd = np.array(frd)
+    return frd.mean(axis=0), frd.std(axis=0)
