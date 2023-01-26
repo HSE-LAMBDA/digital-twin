@@ -120,8 +120,9 @@ def test_pipeline(model, test, result_dir, random_test=None):
             report_run = []
 
             mu, std = metrics.mean_estimation_absolute_percentage_error(y_test, y_pred_test, n_iters=100)
+            #m, s = fd.bootstrap_frdist(y_scaled, y_pred_test_scaled, n_iters=100)
             print(f'Frechet distance: {fd.frdist(y_scaled, y_pred_test_scaled)}')
-            print(f'Frechet distance-2nd_opt: {similaritymeasures.frechet_dist(y_test, y_pred_test)}')
+            #print(f'Frechet distance-2nd_opt: {m}+-{s}')
             print(r"IOPS    MEAPE: %.2f +- %.2f %%" % (mu[0], std[0]))
             print(r"Latency MEAPE: %.2f +- %.2f %%" % (mu[1], std[1]))
             report_run += [mu[0], mu[1]]
