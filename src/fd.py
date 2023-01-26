@@ -3,7 +3,7 @@ from scipy.linalg import sqrtm
 from sklearn.utils import resample
 
 
-def bootstrap_frdist(p, q, n_iters=100):
+def bootstrap_frdist(y_true, y_pred, n_iters=100):
     frd = []
     
     inds = np.arange(len(p))
@@ -11,8 +11,8 @@ def bootstrap_frdist(p, q, n_iters=100):
     for i in range(n_iters):
         inds_boot = resample(inds)
         
-        y_true_boot = p[inds_boot]
-        y_pred_boot = q[inds_boot]
+        y_true_boot = y_true[inds_boot]
+        y_pred_boot = y_pred[inds_boot]
         
         y_true_mean, y_true_cov = y_true_boot.mean(axis=0), np.cov(y_true_boot, rowvar=False)
         y_pred_mean, y_pred_cov = y_pred_boot.mean(axis=0), np.cov(y_pred_boot, rowvar=False)
