@@ -51,19 +51,20 @@ if __name__ == '__main__':
         y_train, y_test = y[ids.isin(train_ids)], y[ids.isin(test_ids)]
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        meape_iops = meape(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0])
-        meape_lat = meape(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1])
+        meape_iops_mean, meape_iops_std = meape(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0])
+        meape_lat_mean, meape_lat_std = meape(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1])
     
-        seape_iops = seape(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0])
-        seape_lat = seape(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1])
+        seape_iops_mean, seape_iops_std = seape(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0])
+        seape_lat_mean, seape_lat_std = seape(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1])
     
         with open(CHECKPOINTS_PATH%filename, 'wb') as f:
             pickle.dump(model, f)
-        result[filename] = {'MEAPE_IOPS': meape_iops, 'MEAPE_LAT': meape_lat, 'SEAPE_IOPS': seape_iops, 'SEAPE_LAT': seape_lat}
-        print(f'MEAPE_IOPS: {meape_iops:.2f}')
-        print(f'MEAPE_LAT: {meape_lat:.2f}')
-        print(f'SEAPE_IOPS: {seape_iops:.2f}')
-        print(f'SEAPE_LAT: {seape_lat:.2f}')
+        result[filename] = {'MEAPE_IOPS': {'mean': meape_iops_mean, 'std': meape_iops_std}, 'MEAPE_LAT': {'mean': meape_lat_mean, 'std': meape_lat_std},
+                            'SEAPE_IOPS': {'mean': seape_iops_mean, 'std': seape_iops_std}, 'SEAPE_LAT': {'mean': seape_lat_mean, 'std': seape_iops_std}}
+        print(f'MEAPE_IOPS: {meape_iops_mean:.2f} ± {meape_iops_std:.2f}')
+        print(f'MEAPE_LAT: {meape_lat_mean:.2f} ± {meape_lat_std:.2f}')
+        print(f'SEAPE_IOPS: {seape_iops_mean:.2f} ± {seape_iops_std:.2f}')
+        print(f'SEAPE_LAT: {seape_lat_mean:.2f} ± {seape_lat_std:.2f}')
 
 
     with open(RESULT_PATH, 'w') as f:
