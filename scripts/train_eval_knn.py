@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import sys; sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from src.data import PoolDataSchema, CacheDataSchema
-from src.utils.metrics import absolute_percentage_error as ape, mean_estimation_absolute_percentage_error as meape, std_estimation_absolute_percentage_error as seape
+from src.utils.metrics import absolute_percentage_error as ape, mean_estimation_absolute_percentage_error as meape, std_estimation_absolute_percentage_error as seape, aggregate_loads
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.neighbors import KNeighborsRegressor
@@ -40,8 +40,8 @@ if __name__ == '__main__':
             ('scaling', StandardScaler()),
             ('model', GridSearchCV(KNeighborsRegressor(),
                                    param_grid={
-                                       'n_neighbors': [2, 5, 7, 10, 15, 20],
-                                       'p': [1, 2]
+                                       #'n_neighbors': [2, 5, 7, 10, 15, 20],
+                                       #'p': [1, 2]
                                    },
                                    scoring=make_scorer(scoring_fn)))
         ])
@@ -51,11 +51,11 @@ if __name__ == '__main__':
         y_train, y_test = y[ids.isin(train_ids)], y[ids.isin(test_ids)]
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        meape_iops_mean, meape_iops_std = meape(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0])
-        meape_lat_mean, meape_lat_std = meape(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1])
+        meape_iops_mean, meape_iops_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0], meape)
+        meape_lat_mean, meape_lat_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1], meape)
     
-        seape_iops_mean, seape_iops_std = seape(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0])
-        seape_lat_mean, seape_lat_std = seape(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1])
+        seape_iops_mean, seape_iops_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0], seape)
+        seape_lat_mean, seape_lat_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1], seape)
     
         with open(CHECKPOINTS_PATH%filename, 'wb') as f:
             pickle.dump(model, f)
