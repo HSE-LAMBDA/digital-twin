@@ -40,8 +40,8 @@ if __name__ == '__main__':
             ('scaling', StandardScaler()),
             ('model', GridSearchCV(KNeighborsRegressor(),
                                    param_grid={
-                                       #'n_neighbors': [2, 5, 7, 10, 15, 20],
-                                       #'p': [1, 2]
+                                       'n_neighbors': [2, 5, 7, 10, 15, 20],
+                                       'p': [1, 2]
                                    },
                                    scoring=make_scorer(scoring_fn)))
         ])
