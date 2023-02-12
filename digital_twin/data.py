@@ -33,4 +33,5 @@ class PoolDataSchema(pa.SchemaModel):
     def check_load_type(cls, a: Series) -> bool:
         "Load type must be either load or unload"
         return a.map(lambda x: x in ('random', 'sequential')).all()
-    
+  
+CacheDataSchema = PoolDataSchema
