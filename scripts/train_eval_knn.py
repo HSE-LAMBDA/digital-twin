@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import sys; sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from digital_twin.data import PoolDataSchema, CacheDataSchema
+from digital_twin.models.density_estimation import Grouper
 from digital_twin.performance_metrics.eape import absolute_percentage_error as ape, mean_estimation_absolute_percentage_error as meape, std_estimation_absolute_percentage_error as seape, aggregate_loads
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV, train_test_split
@@ -11,6 +12,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.metrics import make_scorer
 import json
 import pickle
+import pdb
 
 
 RANDOM_STATE = 42
@@ -31,8 +33,13 @@ if __name__ == '__main__':
             schema = CacheDataSchema
             filename = 'cache'
         schema.validate(df)
+        
         def scoring_fn(y_true, y_pred):
+            scaler = StandardScaler()
+            y_true = scaler.fit_transform(y_true)
+            y_pred = scaler.transform(y_pred)
             return -ape(y_true.values, y_pred).mean()
+
         model = Pipeline([
             ('encoding', OneHotEncoder(sparse=False)),
             ('scaling', StandardScaler()),
@@ -44,10 +51,14 @@ if __name__ == '__main__':
                                    scoring=make_scorer(scoring_fn)))
         ])
         X, y, ids = df.drop(['iops', 'lat', 'id'], 1), df[['iops', 'lat']], df['id']
+
+
         train_ids, test_ids = train_test_split(list(set(ids)), test_size=TEST_FRACTION, random_state=RANDOM_STATE)
         X_train, X_test = X[ids.isin(train_ids)], X[ids.isin(test_ids)]
         y_train, y_test = y[ids.isin(train_ids)], y[ids.isin(test_ids)]
-        model.fit(X_train, y_train)
+        df_train_grouped = pd.concat([X_train, y_train], axis=1).groupby(list(X_train.columns)).apply(lambda df: df.mean())[y_train.columns].reset_index(drop=False)
+        X_train_grouped, y_train_grouped = df_train_grouped[X_train.columns], df_train_grouped[y_train.columns]
+        model.fit(X_train_grouped, y_train_grouped)
         y_pred = model.predict(X_test)
         meape_iops_mean, meape_iops_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0], meape)
         meape_lat_mean, meape_lat_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1], meape)
