@@ -3,8 +3,9 @@ from pandera.typing import Series
 
 
 """ Dependent variables used as target for the training process."""
-POOL_DEPENDENT_VARS = set(["iops", "lat"])
-POOL_INDEPENDENT_VARS = set(["block_size", "n_jobs", "iodepth", "read_fraction", "load_type", "io_type", "raid", "n_disks", "device_type", "offset", "id"])
+POOL_DEPENDENT_VARS = ["iops", "lat"]
+POOL_INDEPENDENT_VARS = ["block_size", "n_jobs", "iodepth", "read_fraction", "load_type", "io_type", "raid", "n_disks", "device_type", "offset"]
+
 class PoolDataSchema(pa.SchemaModel):
     """ Data schema for the data.
     This schema is used to validate the data.
