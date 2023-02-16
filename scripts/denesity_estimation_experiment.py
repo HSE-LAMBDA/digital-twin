@@ -10,8 +10,8 @@ from digital_twin.data import POOL_DEPENDENT_VARS, POOL_INDEPENDENT_VARS
 from digital_twin.models.density_estimation import Regressor
 from functools import partial
 from sklearn.model_selection import train_test_split
-from digital_twin.performance_metrics.mmd import mmd_rbf
-from digital_twin.visulization.plots import PublicationGradeFigure
+from digital_twin.performance_metrics import mmd_rbf, frechet_distance  as fd
+from digital_twin.visulization.plots import Figures
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ def fit(x, y, x_test, y_test, model_checkpoint_path):
 
 
 def metrics_eval(target: np.array, prediction: np.array):
-    metrics = {"mmd_rbf": mmd_rbf(target, prediction)}
+    metrics = {"mmd_rbf": mmd_rbf(target, prediction), "FD": fd(target, prediction)}
     return metrics
 
 
@@ -106,7 +106,7 @@ def plot_figures(df, grouped_indices):
         sub_df = df.loc[idx][POOL_INDEPENDENT_VARS].drop_duplicates().to_dict('record')
         assert len(sub_df) == 1, "More than one unique combination of independent variables"
         title = ", ".join([f'{k}={v}' for k, v in sub_df[0].items()])
-        pgf = PublicationGradeFigure(df.loc[idx])
+        pgf = Figures(df.loc[idx])
         pgf.plot_iops_latency(
             title,
             save_path=f"figures/{title}.png",
