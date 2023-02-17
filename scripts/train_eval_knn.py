@@ -5,9 +5,10 @@ import sys; sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from digital_twin.data import PoolDataSchema, CacheDataSchema
 from digital_twin.models.density_estimation import Grouper
 from digital_twin.performance_metrics.eape import absolute_percentage_error as ape, mean_estimation_absolute_percentage_error as meape, std_estimation_absolute_percentage_error as seape, aggregate_loads
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.neighbors import KNeighborsRegressor
+from digital_twin.models.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from digital_twin.models.knn import KNN
+from digital_twin.models.grid_search import GridSearchCV
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.metrics import make_scorer
 import json
@@ -38,14 +39,14 @@ if __name__ == '__main__':
             scaler = StandardScaler()
             y_true = scaler.fit_transform(y_true)
             y_pred = scaler.transform(y_pred)
-            return -ape(y_true.values, y_pred).mean()
+            return -ape(y_true, y_pred).mean()
 
         model = Pipeline([
             ('encoding', OneHotEncoder(sparse=False)),
             ('scaling', StandardScaler()),
-            ('model', GridSearchCV(KNeighborsRegressor(),
+            ('model', GridSearchCV(KNN(),
                                    param_grid={
-                                       'n_neighbors': [2, 5, 7, 10, 15, 20],
+                                       'n_neighbors': [1, 2, 5, 7, 10, 15, 20],
                                        'p': [1, 2]
                                    },
                                    scoring=make_scorer(scoring_fn)))
@@ -60,6 +61,7 @@ if __name__ == '__main__':
         X_train_grouped, y_train_grouped = df_train_grouped[X_train.columns], df_train_grouped[y_train.columns]
         model.fit(X_train_grouped, y_train_grouped)
         y_pred = model.predict(X_test)
+        # model.predict(X_train_grouped, n_samples=2) # [X.shape, n_samples, n_targets]
         meape_iops_mean, meape_iops_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0], meape)
         meape_lat_mean, meape_lat_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1], meape)
 
