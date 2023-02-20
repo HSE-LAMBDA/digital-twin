@@ -9,21 +9,18 @@ from tqdm import tqdm
 
 class  Grouper:
     """Group parameters."""
-    
-    def transform(self, df, dependent_vars: list[str], independent_vars: list[str]):
-        self.df = df
-        self.groupby = list(set(PoolDataSchema.__fields__.keys()) - set(dependent_vars))
-        groups = self.df.groupby(self.groupby)
-
+    @staticmethod
+    def transform(X, y):
+        groups = X.groupby(X.columns.tolist())
         # keep track of the indices of the groups useful for performance evaluation
         grouped_indices = []
-        x = []
-        y = []
+        _x = []
+        _y = []
         shapes = None
         for _, (name, group) in tqdm(enumerate(groups)):
             grouped_indices.append(group.index)
             gmm = GMM(n_components=2, covariance_type="full", use_elliptic_envelope=True) 
-            gmm.fit(group.loc[:, dependent_vars].apply(np.log1p))
+            gmm.fit(y.loc[group.index].apply(np.log1p))
             _params = dict(
                 precision = gmm.precisions_cholesky,
                 means = gmm.means,
@@ -34,15 +31,16 @@ class  Grouper:
             _params = {f'{k}_{i}': vv for k, v in _params.items() for i, vv in enumerate(v.reshape(-1)) }
             targets = pd.DataFrame(_params, index=[0])
             targets = targets.reindex(sorted(targets.columns), axis=1)
-            x.append(self.featurize(group.loc[:, independent_vars].drop_duplicates()))
-            y.append(targets)
+            _x.append(Grouper.featurize(group.drop_duplicates()))
+            _y.append(targets)
             # if _ == 2:
             #     break
-        x = pd.concat(x)
-        y = pd.concat(y)
+        x = pd.concat(_x)
+        y = pd.concat(_y)
         return x, y, grouped_indices, shapes
     
-    def featurize(self, df):
+    @staticmethod 
+    def featurize(df):
         """Featurize the data."""
         df = pd.concat(
             [
