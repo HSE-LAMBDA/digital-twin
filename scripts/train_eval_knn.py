@@ -3,14 +3,10 @@ import pandas as pd
 import os
 import sys; sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from digital_twin.data import PoolDataSchema, CacheDataSchema
-from digital_twin.models.density_estimation import Grouper
+from functools import partial
 from digital_twin.performance_metrics.eape import absolute_percentage_error as ape, mean_estimation_absolute_percentage_error as meape, std_estimation_absolute_percentage_error as seape, aggregate_loads
-from digital_twin.models.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
-from digital_twin.models.knn import KNN
-from digital_twin.models.grid_search import GridSearchCV
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.metrics import make_scorer
+from digital_twin.models.knn import KNNSampler
 import json
 import pickle
 import pdb
@@ -41,32 +37,31 @@ if __name__ == '__main__':
             y_pred = scaler.transform(y_pred)
             return -ape(y_true, y_pred).mean()
 
-        model = Pipeline([
-            ('encoding', OneHotEncoder(sparse=False)),
-            ('scaling', StandardScaler()),
-            ('model', GridSearchCV(KNN(),
-                                   param_grid={
-                                       'n_neighbors': [1, 2, 5, 7, 10, 15, 20],
-                                       'p': [1, 2]
-                                   },
-                                   scoring=make_scorer(scoring_fn)))
-        ])
+        model = KNNSampler()
         X, y, ids = df.drop(['iops', 'lat', 'id'], 1), df[['iops', 'lat']], df['id']
 
 
         train_ids, test_ids = train_test_split(list(set(ids)), test_size=TEST_FRACTION, random_state=RANDOM_STATE)
         X_train, X_test = X[ids.isin(train_ids)], X[ids.isin(test_ids)]
         y_train, y_test = y[ids.isin(train_ids)], y[ids.isin(test_ids)]
-        df_train_grouped = pd.concat([X_train, y_train], axis=1).groupby(list(X_train.columns)).apply(lambda df: df.mean())[y_train.columns].reset_index(drop=False)
-        X_train_grouped, y_train_grouped = df_train_grouped[X_train.columns], df_train_grouped[y_train.columns]
-        model.fit(X_train_grouped, y_train_grouped)
-        y_pred = model.predict(X_test)
-        # model.predict(X_train_grouped, n_samples=2) # [X.shape, n_samples, n_targets]
-        meape_iops_mean, meape_iops_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0], meape)
-        meape_lat_mean, meape_lat_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1], meape)
+        ids_train, ids_test = ids[ids.isin(train_ids)], ids[ids.isin(test_ids)]
+        model.fit(X_train, y_train)
+        test_configs = {test_id: X_test[ids_test == test_id].to_dict(orient='records')[0] for test_id in ids_test}
+        def sampling_fn(col, sample_size=100, **kwargs):
+            return model.sample(sample_size, **kwargs)[1][[col]].values
 
-        seape_iops_mean, seape_iops_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0], seape)
-        seape_lat_mean, seape_lat_std = aggregate_loads(ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1], seape)
+        
+
+#        samples_X, samples_y = model.sample(n_samples=10,
+#                                            block_size=128, n_jobs=1, iodepth=5, read_fraction=100,
+#                                            load_type='sequential', io_type='read', raid='4+1', 
+#                                            n_disks=10, device_type='hdd', offset=0)
+        # model.predict(X_train_grouped, n_samples=2) # [X.shape, n_samples, n_targets]
+        meape_iops_mean, meape_iops_std = aggregate_loads(ids_test.values, test_configs, y_test.values[:, 0], partial(sampling_fn, 'iops'), meape)
+        meape_lat_mean, meape_lat_std = aggregate_loads(ids_test.values, test_configs, y_test.values[:, 0], partial(sampling_fn, 'lat'), meape)
+
+        seape_iops_mean, seape_iops_std = aggregate_loads(ids_test.values, test_configs, y_test.values[:, 0], partial(sampling_fn, 'iops'), seape)
+        seape_lat_mean, seape_lat_std = aggregate_loads(ids_test.values, test_configs, y_test.values[:, 0], partial(sampling_fn, 'lat'), seape)
 
         result = {'MEAPE_IOPS': {'mean': meape_iops_mean, 'std': meape_iops_std}, 'MEAPE_LAT': {'mean': meape_lat_mean, 'std': meape_lat_std},
                             'SEAPE_IOPS': {'mean': seape_iops_mean, 'std': seape_iops_std}, 'SEAPE_LAT': {'mean': seape_lat_mean, 'std': seape_iops_std}}
