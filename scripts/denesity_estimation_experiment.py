@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument(
         "--result-path",
         type=Path,
-        default="results",
+        default="results/predictions",
         help="Path to result (json file).",
     )
     parser.add_argument(
@@ -135,10 +135,15 @@ def main(train_file, test_file):
         exist_ok=True
     )
     predictions = get_predictions(
-        train_df, test_df, root_dir / f"catboost_{train_file.stem}.cbm", grid_search=True if args.grid_search else False
+        train_df,
+        test_df,
+        root_dir / f"catboost_{train_file.stem}.cbm",
+        grid_search=True if args.grid_search else False,
     )
 
-    (root_dir := args.result_path / f"{train_file.parent.name}").mkdir(exist_ok=True)
+    (root_dir := args.result_path / f"{train_file.parent.name}").mkdir(
+        exist_ok=True, parents=True
+    )
     predictions.to_csv(
         root_dir / f"catboost_density_pred_{test_file.name}", index=False
     )

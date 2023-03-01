@@ -37,7 +37,7 @@ def parse_args():
     parser.add_argument(
         "--result-path",
         type=Path,
-        default="results",
+        default="results/predictions",
         help="Path to result (json file).",
     )
     args = parser.parse_args()
@@ -98,8 +98,8 @@ def main(train_file, test_file):
         gen_iops=this_prediction[:, 0], gen_lat=this_prediction[:, 1]
     )
 
-    (root_dir := args.result_path / f"{train_file.parent.name}").mkdir(exist_ok=True)
-    test_df.to_csv(root_dir / f"knn_pred_{test_file.name}", index=False)
+    (root_dir := args.result_path / f"{train_file.parent.name}").mkdir(exist_ok=True, parents=True)
+    test_df.to_csv(root_dir /  f"knn_pred_{test_file.name}", index=False)
     logger.info(f"Saving predictions: {train_file.parent.name} - {test_file.name}")
 
 
