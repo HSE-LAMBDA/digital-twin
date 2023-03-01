@@ -25,31 +25,6 @@ def parse_args():
     return parser.parse_args()
 
 
-# meape_iops_mean, meape_iops_std = aggregate_loads(
-#         ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0], meape
-#     )
-#     meape_lat_mean, meape_lat_std = aggregate_loads(
-#         ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1], meape
-#     )
-
-#     seape_iops_mean, seape_iops_std = aggregate_loads(
-#         ids[ids.isin(test_ids)].values, y_test.values[:, 0], y_pred[:, 0], seape
-#     )
-#     seape_lat_mean, seape_lat_std = aggregate_loads(
-#         ids[ids.isin(test_ids)].values, y_test.values[:, 1], y_pred[:, 1], seape
-#     )
-
-#     with open(model_checkpoint_path, "wb") as f:
-#         pickle.dump(model, f)
-
-#     return {
-#         "MEAPE_IOPS": {"mean": meape_iops_mean, "std": meape_iops_std},
-#         "MEAPE_LAT": {"mean": meape_lat_mean, "std": meape_lat_std},
-#         "SEAPE_IOPS": {"mean": seape_iops_mean, "std": seape_iops_std},
-#         "SEAPE_LAT": {"mean": seape_lat_mean, "std": seape_lat_std},
-#     }
-
-
 def nice_format(x: dict):
     return {k: f"{mean:.2f} ± {std:.2f}" for k, (mean, std) in x.items()}
 
