@@ -108,31 +108,19 @@ def agg(x):
 
 def main(files: list[Path]):
     dfs = [pd.read_csv(f) for f in files]
-    # TODO: figure out the grouping
-    # >>> list(map(len, groupded_dfs))
-    # [16, 32, 16, 16, 32, 16, 32, 32]
-    # >>> list(map(lambda x: len(x.groupby('id')), dfs))
-    # [16, 16, 16, 16, 16, 16, 16, 16]
-
-    # groupded_dfs = [
-    #     df.groupby(
-    #         columns := df.drop(
-    #             ["iops", "lat", "gen_iops", "gen_lat"], axis=1
-    #         ).columns.tolist()
-    #     )
-    #     for df in dfs
-    # ]
-    columns = (
-        dfs[0].drop(["iops", "lat", "gen_iops", "gen_lat"], axis=1).columns.tolist()
-    )
-    groupded_dfs = [df.groupby("id") for df in dfs]
-
-    # get_aggregated_stats(dfs)
+    groupded_dfs = [
+        df.groupby(
+            columns := df.drop(
+                ["iops", "lat", "gen_iops", "gen_lat"], axis=1
+            ).columns.tolist()
+        )
+        for df in dfs
+    ]
+    
+    get_aggregated_stats(dfs)
     for grouped_df, file in zip(groupded_dfs, files):
         results = []
         for g, df in grouped_df:
-            # TODO this is not be needed when grouping by conditions
-            g = df.loc[:, columns].drop_duplicates().values.flatten().tolist()
             conditions = get_name_from_cond(dict(zip(columns, g)))
             this_uuid = uuid.uuid5(
                 uuid.NAMESPACE_OID, json.dumps(conditions, sort_keys=True)
