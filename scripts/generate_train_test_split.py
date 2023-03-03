@@ -24,7 +24,7 @@ def parse_args():
         raise FileNotFoundError(f"Data file {args.dataset} not found.")
     return args
 
-def get_train_test_data(df, test_fraction=0.03, random_state=666):
+def get_train_test_data(df, test_fraction=0.2, random_state=666):
     ids = df['id']
     train_ids, test_ids = train_test_split(
         list(set(ids)), test_size=test_fraction, random_state=random_state
