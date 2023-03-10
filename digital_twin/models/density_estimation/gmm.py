@@ -60,7 +60,7 @@ class GMM:
     def sample(self, n_samples: int = 1000):
         """ Sample from the GMM. """
         samples, _ = self.model.sample(n_samples)
-        return samples
+        return np.trunc(np.expm1(samples))
 
     @property
     def weights(self):

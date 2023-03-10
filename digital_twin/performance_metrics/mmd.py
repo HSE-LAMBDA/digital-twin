@@ -4,7 +4,7 @@ import joblib
 from sklearn.utils import resample
 from sklearn.preprocessing import StandardScaler
 
-def mmd_rbf(X, Y, gamma=None, n_iters=1, n_jobs=6, standardize=True):
+def mmd_rbf(X, Y, gamma=None, n_iters=100, n_jobs=-1, standardize=True):
     """ Bootstrap MMD using rbf (gaussian) kernel (i.e., k(x,y) = exp(-gamma * ||x-y||^2 / 2))"""
     
     if standardize:
