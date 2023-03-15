@@ -68,19 +68,10 @@ def regressor(
         ),
     )
     grid_search_params = {
-        "depth": [2, 4, 8],
-        "subsample": [0.5, 0.7, 1.0],
-        "n_estimators": [10, 50, 100, 500],
-        "learning_rate": [0.0001, 0.001, 0.01, 0.1, 1.0],
-        "l2_leaf_reg": [1, 100, 1000, 10000],
-        "border_count": [1, 100, 1000, 10000],
-        "random_strength": [1, 100, 1000, 10000],
-        "grow_policy": ["SymmetricTree", "Depthwise", "Lossguide"],
-        "leaf_estimation_iterations": [1, 10, 50, 100],
-        "leaf_estimation_method": ["Newton", "Gradient"],
-        "bootstrap_type": ["Bayesian", "Bernoulli", "MVS"],
-        "score_function": ["Cosine", "L2"],
+        "depth": [2, 4, 6, 8],
+        "learning_rate": [0.01, 0.05, 0.1],
     }
+
     regressor.fit(
         X_train,
         y_train,
@@ -115,8 +106,9 @@ def get_predictions(
     )
     params = pd.DataFrame(model.predict(X_test), columns=y_test.columns)
     df = []
+
     for idx, (_, row) in zip(test_indices, params.iterrows()):
-        gmm = GMM()
+        gmm = GMM(n_components=1)
         init_gmm_params(gmm, row)
         generated_samples = gmm.sample(len(idx))
         chunk_df = test_df.loc[idx].assign(
