@@ -49,6 +49,9 @@ def parse_args():
 
 
 def scoring_fn(y_true, y_pred):
+    scaler = StandardScaler()
+    y_true = scaler.fit_transform(y_true)
+    y_pred = scaler.transform(y_pred)
     return -ape(y_true.values, y_pred).mean()
 
 
