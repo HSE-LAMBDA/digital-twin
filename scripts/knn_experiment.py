@@ -52,7 +52,7 @@ def scoring_fn(y_true, y_pred):
     scaler = StandardScaler()
     y_true = scaler.fit_transform(y_true)
     y_pred = scaler.transform(y_pred)
-    return -ape(y_true.values, y_pred).mean()
+    return -ape(y_true, y_pred).mean()
 
 
 def get_X_y(df):
@@ -65,7 +65,7 @@ def get_predictions(train_df, test_df, model_checkpoint_path):
 
     model = Pipeline(
         [
-            ("encoding", OneHotEncoder(sparse_output=False)),
+            ("encoding", OneHotEncoder(sparse_output=False, handle_unknown='infrequent_if_exist')),
             ("scaling", StandardScaler()),
             (
                 "model",
