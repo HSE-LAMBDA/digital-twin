@@ -34,6 +34,7 @@ class PoolDataSchema(pa.SchemaModel):
         "Load type must be either load or unload"
         return a.map(lambda x: x in ('random', 'sequential')).all()
 
+    
 class CacheDataSchema(pa.SchemaModel):
     # head of dataset/cache_data.csv file
     # iops,lat,block_size,n_jobs,iodepth,read_fraction,load_type,io_type,t_raid,n_disks,device_type,offset,id
