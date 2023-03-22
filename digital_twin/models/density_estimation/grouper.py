@@ -52,14 +52,14 @@ class Grouper:
                 df,
                 df.raid.apply(lambda x: list(map(int, x.split("+"))))
                 .apply(pd.Series)
-                .rename({0: "n_disk", 1: "n_parity_disk"}, axis=1),
+                .rename({0: "n_raid_disks", 1: "n_raid_parity_disks"}, axis=1),
             ],
             axis=1,
         )
         return df.assign(
             **{
                 "bs/n_disk": lambda x: x.block_size / x.n_disks,
-                "total_disk": lambda x: x.n_parity_disk + x.n_disk,
+                "total_disk": lambda x: x.n_raid_parity_disks + x.n_raid_disks,
                 "iodepth_jobs": df.iodepth * df.n_jobs,
             }
         )

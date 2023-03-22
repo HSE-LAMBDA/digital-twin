@@ -50,6 +50,11 @@ def parse_args():
 def get_X_y(df):
     return df.drop(["iops", "lat", "id"], axis=1), df[["iops", "lat"]]
 
+def preprocess_X(df):
+    df.load_type = df.load_type.factorize()[0]
+    df.io_type = df.io_type.factorize()[0]
+    df = df.drop(['offset', 'raid', 'device_type'], axis=1)
+    return df
 
 def regressor(
     X_train, y_train, X_test, y_test, model_checkpoint_path, grid_search=False
@@ -71,7 +76,6 @@ def regressor(
         "depth": [2, 4, 6, 8],
         "learning_rate": [0.01, 0.05, 0.1],
     }
-
     regressor.fit(
         X_train,
         y_train,
@@ -144,7 +148,11 @@ def main(train_file, test_file):
 
 if __name__ == "__main__":
     args = parse_args()
-    train_files = list(args.data.rglob("**/train_*.csv"))
-    test_files = list(args.data.rglob("**/test_*.csv"))
+    # # train_files = list(args.data.rglob("**/train_ssd_rand*.csv"))
+    # test_files = list(args.data.rglob("**/test_ssd_rand*.csv"))
+    train_files = list(args.data.rglob("train_*.csv")) 
+    test_files = list(args.data.rglob("test_*.csv"))
+
     process_map(main, train_files, test_files)
-    # main(train_files[0], test_files[0])
+    # for train_file, test_file in zip(train_files, test_files):
+    #     main(train_file, test_file)

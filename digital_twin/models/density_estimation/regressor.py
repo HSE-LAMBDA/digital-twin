@@ -13,7 +13,7 @@ class Regressor:
         if self.regressor_type == "catboost":
             self.model = CatBoostRegressor(
                 **self.regressor_params,
-                cat_features=[col for col in X if isinstance(X[col].iloc[0], str)],
+                # cat_features=[col for col in X if isinstance(X[col].iloc[0], str)],
             )
             if grid_search_params is not None:
                 self.model.set_params(use_best_model=False)

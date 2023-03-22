@@ -159,5 +159,6 @@ def main(files: list[Path]):
 if __name__ == "__main__":
     args = parse_args()
     files = list(args.results.rglob("*.csv"))
+    # files = list(args.results.rglob("**/test_ssd_rand*.csv"))
     metrics = main(files)
     logger.info(metrics)
