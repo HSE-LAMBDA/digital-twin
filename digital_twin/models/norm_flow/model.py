@@ -34,12 +34,11 @@ class NormFlowModel(object):
         self.ckpt_dir = ckpt_dir
         self.nf = None # normalizing flow model for generation
         self.conds = ['iodepth', 'n_jobs', 'block_size', 'read_fraction',
-                      'depth_by_jobs', 'load_type', 'io_type', 'device_type'] # feature (condition) columns used to generate target
-        self.categorical_conds = ['load_type', 'io_type', 'device_type']
-        self.categorical_encoder = None # categorical features encoder
+                      'depth_by_jobs', 'load_type', 'io_type', 'r0', 'r1'] # feature (condition) columns used to generate target
+        
         self.target = ["iops","lat"] # target columns
     
-    def sample(self, X):
+    def sample(self, X, n_samples=1):
         """
         #n_samples: int, iodepth:int, block_size:int, n_jobs:int, read_fraction:float, device_type:str, io_type:str, load_type:str
         @param n_samples - number of samples to simulate
@@ -55,25 +54,32 @@ class NormFlowModel(object):
             model.sample(sample_size=100, iodepth=10, block_size=256, n_jobs=1, read_fraction=55, device_type='nvme', io_type='read', load_type='random')
         """
         
-        n_samples = X.values.shape[0] 
-        iodepth = X['iodepth'].values[0]
-        block_size = X['block_size'].values[0]
-        read_fraction = X['read_fraction'].values[0]
-        io_type = X['io_type'].values[0]
-        load_type = X['load_type'].values[0]
-        n_jobs = X['n_jobs'].values[0]
-        device_type = X['device_type'].values[0]
+        if isinstance(X, pd.DataFrame):
+            iodepth = X['iodepth'].values[0]
+            block_size = X['block_size'].values[0]
+            read_fraction = X['read_fraction'].values[0]
+            io_type = X['io_type'].values[0]
+            load_type = X['load_type'].values[0]
+            n_jobs = X['n_jobs'].values[0]
+            r0 = X['r0'].values[0]
+            r1 = X['r1'].values[0]
+        else:
+            iodepth = X['iodepth']
+            block_size = X['block_size']
+            read_fraction = X['read_fraction']
+            io_type = X['io_type']
+            load_type = X['load_type']
+            n_jobs = X['n_jobs']
+            r0 = X['r0']
+            r1 = X['r1']
 
         depth_by_jobs = iodepth * n_jobs
         conds = {'depth_by_jobs': depth_by_jobs, 'iodepth': iodepth, 'n_jobs': n_jobs, 
-                 'block_size': block_size, 'read_fraction': read_fraction, 
-                 'device_type': device_type, 'io_type': io_type, 'load_type': load_type}
+                 'block_size': block_size, 'read_fraction': read_fraction, 'io_type': io_type, 
+                 'load_type': load_type, 'r0': r0, 'r1': r1}
         conds = [[conds[col] for col in self.conds]]*n_samples
         conds = np.array(conds)
         conds = pd.DataFrame(conds, columns=self.conds)
-        conds = np.hstack([conds[[col for col in self.conds if col not in self.categorical_conds]].values,
-                           self.categorical_encoder.transform(conds[self.categorical_conds]).toarray()
-        ])# fit string encoder
         conds = self.X_scaler.transform(conds)
         y_pred = self.y_scaler.inverse_transform(self.nf.predict(conds))
         return y_pred
@@ -103,13 +109,6 @@ class NormFlowModel(object):
         X = X[self.conds]
         y = y[self.target]
 
-        self.categorical_encoder = OneHotEncoder(drop='first')
-        self.categorical_encoder.fit(X[self.categorical_conds])
-
-        X = np.hstack([X[[col for col in self.conds if col not in self.categorical_conds]].values,
-                       self.categorical_encoder.transform(X[self.categorical_conds]).toarray()
-        ])
-
         input_size = X.shape[1]
 
         if self.nf is None:
@@ -127,9 +126,7 @@ class NormFlowModel(object):
         
         
         with open(self.ckpt_dir+'/X_scaler.pkl', 'wb') as f:
-            pickle.dump(self.X_scaler, f)
-        with open(self.ckpt_dir+'/cat_encoder.pkl', 'wb') as f:
-            pickle.dump(self.categorical_encoder, f)
+            pickle.dump(self.X_scaler, f)        
         with open(self.ckpt_dir+'/y_scaler.pkl', 'wb') as f:
             pickle.dump(self.y_scaler, f)
                 
@@ -149,7 +146,7 @@ class NormFlowModel(object):
         for epoch in tbar:
             state_dict = {'nf': self.nf.model.state_dict(), 'n_layers': self.n_layers, 
                           'hidden': self.hidden, 'conds': self.conds, 'input_size': input_size,
-                          'categorical_conds': self.categorical_conds, 'target': self.target}
+                           'target': self.target}
             if validate:
                 metrics_ = self._eval(X_val, y_val, agg='median')
                 metrics_history.append(metrics_)
@@ -182,26 +179,24 @@ class NormFlowModel(object):
                 tbar.refresh()  # to show immediately the update
 
     def _eval(self, X_test, y_test, bootstrap_size=1, agg=None):
-        res = {'IOPS_MEAPE': [], 'Lat_MEAPE': [], 'DS_QDA': []}
+        res = {'IOPS_MEAPE': [], 'Lat_MEAPE': []} # , 'DS_QDA': []
 
         for conds in X_test[[col for col in self.conds if col not in {'depth_by_jobs'}]].drop_duplicates().to_dict(orient='records'):
             mask = np.ones(X_test.shape[0])
             for k, v in conds.items():
                 mask = np.logical_and(mask, X_test[k] == v)
             y_true = y_test[mask][self.target].values
-            y_pred = self.sample(y_true.shape[0], conds['iodepth'], conds['block_size'], 
-                                 conds['n_jobs'], conds['read_fraction'], 
-                                 conds['device_type'], conds['io_type'], conds['load_type'])
+            y_pred = self.sample(conds, n_samples=y_true.shape[0])
 
             (mu_iops, mu_latency), (std_iops, std_latency) = metrics.mean_estimation_absolute_percentage_error(y_true,
                                                                                                                y_pred,
                                                                                                                n_iters=bootstrap_size)
 
-            mu_qda, std_qda = metrics.discrepancy_score(y_test, y_pred, model='QDA',
-                                                        n_iters=bootstrap_size)
+            #mu_qda, std_qda = metrics.discrepancy_score(y_test, y_pred, model='QDA',
+            #                                            n_iters=bootstrap_size)
             res['IOPS_MEAPE'].append((mu_iops, std_iops))
             res['Lat_MEAPE'].append((mu_latency, std_latency))
-            res['DS_QDA'].append((mu_qda, std_qda))
+            #res['DS_QDA'].append((mu_qda, std_qda))
         if agg == 'mean':
             res = {k: np.mean(list(map(lambda x: x[0], v))) for k, v in res.items()}
         elif agg == 'median':
@@ -219,8 +214,7 @@ class NormFlowModel(object):
         state_dict = torch.load(latest_file, map_location=DEVICE)
         
         model = NormFlowModel(ckpt_dir, state_dict['n_layers'], state_dict['hidden'])
-        model.conds = state_dict['conds']
-        model.categorical_conds = state_dict['categorical_conds']
+        model.conds = state_dict['conds']        
         model.target = state_dict['target']
         input_size = state_dict['input_size']
         model.nf = NFModel({'var_size': len(model.target), 'cond_size': input_size, 
@@ -234,7 +228,6 @@ class NormFlowModel(object):
                 model.X_scaler = pickle.load(f)
             with open(f'{ckpt_dir}/y_scaler.pkl', 'rb') as f:
                 model.y_scaler = pickle.load(f)
-            with open(f'{ckpt_dir}/cat_encoder.pkl', 'rb') as f:
-                model.categorical_encoder = pickle.load(f)
+            
         return model
     
