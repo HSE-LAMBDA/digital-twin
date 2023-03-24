@@ -104,7 +104,8 @@ def get_predictions(
 ):
     X_train, y_train, _, _ = Grouper.transform(*get_X_y(train_df))
     X_test, y_test, test_indices, _ = Grouper.transform(*get_X_y(test_df))
-
+    X_train = preprocess_X(X_train)
+    X_test = preprocess_X(X_test)
     model = regressor(
         X_train, y_train, X_test, y_test, model_checkpoint_path, grid_search=grid_search
     )
@@ -148,11 +149,7 @@ def main(train_file, test_file):
 
 if __name__ == "__main__":
     args = parse_args()
-    # # train_files = list(args.data.rglob("**/train_ssd_rand*.csv"))
-    # test_files = list(args.data.rglob("**/test_ssd_rand*.csv"))
     train_files = list(args.data.rglob("train_*.csv")) 
     test_files = list(args.data.rglob("test_*.csv"))
 
     process_map(main, train_files, test_files)
-    # for train_file, test_file in zip(train_files, test_files):
-    #     main(train_file, test_file)

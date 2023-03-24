@@ -58,7 +58,7 @@ class Grouper:
         )
         return df.assign(
             **{
-                "bs/n_disk": lambda x: x.block_size / x.n_disks,
+                "bs/n_raid_disk": lambda x: x.block_size / x.n_raid_disks,
                 "total_disk": lambda x: x.n_raid_parity_disks + x.n_raid_disks,
                 "iodepth_jobs": df.iodepth * df.n_jobs,
             }
