@@ -72,13 +72,14 @@ def metrics_eval(target: np.array, prediction: np.array):
     }
 
 
-def caclulate_stats(df, conds, title=None, save_path=None):
-    metrics = metrics_eval(
-        df[["iops", "lat"]].values, df[["gen_iops", "gen_lat"]].values
-    )
-    plotter = Figures(df, filter_outliers=False)
+def caclulate_stats(df, conds, title=None, save_path=None, no_stats=False):
+    plotter = Figures(df, filter_outliers=True)
     fig = plotter.plot_iops_latency(title=title, conds=conds, save_path=save_path)
-    return metrics
+    if not no_stats:
+        metrics = metrics_eval(
+            df[["iops", "lat"]].values, df[["gen_iops", "gen_lat"]].values
+        )
+        return metrics
 
 
 def get_aggregated_stats(dfs):
@@ -92,9 +93,8 @@ def get_aggregated_stats(dfs):
             / "figures"
             / file.parent.name
             / f"agg_{file.stem}.pdf",
+            no_stats=True
         )
-    metrics = pd.DataFrame.from_records(metrics).T
-    metrics.to_csv("results/agg_metrics.csv", index=False)
 
 
 def get_name_from_cond(cond: dict):
@@ -102,7 +102,6 @@ def get_name_from_cond(cond: dict):
 
 
 def agg(x):
-    t_x = transpose(x)
     return np.mean(x[0]), np.mean(x[1])
 
 
