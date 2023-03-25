@@ -5,11 +5,9 @@ from pathlib import Path
 
 import pandas as pd
 from sklearn.metrics import make_scorer
-from sklearn.model_selection import GridSearchCV
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from tqdm.contrib.concurrent import process_map
+from digital_twin.models.density_estimation.knn import KNNSampler
+import warnings; warnings.filterwarnings('ignore')
 
 from digital_twin.performance_metrics import ape
 
@@ -55,32 +53,23 @@ def scoring_fn(y_true, y_pred):
 def get_X_y(df):
     return df.drop(["iops", "lat", "id"], axis=1), df[["iops", "lat"]]
 
-
 def get_predictions(train_df, test_df, model_checkpoint_path):
     X_train, y_train = get_X_y(train_df)
     X_test, y_test = get_X_y(test_df)
+    id_test = test_df.id
 
-    model = Pipeline(
-        [
-            ("encoding", OneHotEncoder(sparse_output=False)),
-            ("scaling", StandardScaler()),
-            (
-                "model",
-                GridSearchCV(
-                    KNeighborsRegressor(),
-                    param_grid={"n_neighbors": [2, 5, 7, 10, 15, 20], "p": [1, 2]},
-                    scoring=make_scorer(scoring_fn),
-                ),
-            ),
-        ]
-    )
+    model = KNNSampler()
 
     model.fit(X_train, y_train)
     with open(model_checkpoint_path, "wb") as f:
         pickle.dump(model, f)
-
-    return model.predict(X_test)
-
+        
+    dfs = []
+    for id_, conf in zip(list(id_test), X_test.to_dict(orient='records')):
+        samples_df = model.sample(n_samples=1, **conf)
+        samples_df['id'] = id_
+        dfs.append(samples_df)
+    return pd.concat(dfs).reset_index(drop=True)
 
 def main(train_file, test_file):
     train_df = pd.read_csv(train_file)
@@ -89,13 +78,10 @@ def main(train_file, test_file):
         exist_ok=True
     )
 
-    this_prediction = get_predictions(
+    test_df = get_predictions(
         train_df,
         test_df,
         model_checkpoint_path=root_dir / f"knn_{train_file.stem}.pkl",
-    )
-    test_df = test_df.assign(
-        gen_iops=this_prediction[:, 0], gen_lat=this_prediction[:, 1]
     )
 
     (root_dir := args.result_path / f"{train_file.parent.name}").mkdir(exist_ok=True, parents=True)
