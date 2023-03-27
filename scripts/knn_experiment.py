@@ -65,11 +65,15 @@ def get_predictions(train_df, test_df, model_checkpoint_path):
         pickle.dump(model, f)
         
     dfs = []
-    for id_, conf in zip(list(id_test), X_test.to_dict(orient='records')):
+    for id_, conf, gt in zip(list(id_test), X_test.to_dict(orient='records'), y_test.to_dict(orient='records')):
         samples_df = model.sample(n_samples=1, **conf)
         samples_df['id'] = id_
+        samples_df.rename(columns={'lat': 'gen_lat', 'iops': 'gen_iops'}, inplace=True)
+        samples_df['iops'] = gt['iops']
+        samples_df['lat'] = gt['lat']
         dfs.append(samples_df)
-    return pd.concat(dfs).reset_index(drop=True)
+    res = pd.concat(dfs).reset_index(drop=True)
+    return res
 
 def main(train_file, test_file):
     train_df = pd.read_csv(train_file)
