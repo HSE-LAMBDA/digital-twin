@@ -30,6 +30,14 @@ class YadroColumnsTransformer(BaseEstimator, TransformerMixin):
             return X.drop(['raid'], 1)
         return X.drop(['raid'], 1), y
 
+    def inverse_transform(self, X, y=None):
+        X = X.copy()
+        X['raid'] = X['raid_0'].astype(str) + '+' + X['raid_1'].astype(str)
+        X.drop(['raid_0', 'raid_1'], 1, inplace=True)
+        if y is None:
+            return X
+        return X, y
+
 class KNNSampler:
     def __init__(self, scoring_fn=default_scoring_fn, columns_to_drop=['device_type'],
                  categories=['load_type', 'io_type', 'device_type'], params_grid={'n_neighbors': [1], 'p': [2]}):
@@ -79,7 +87,6 @@ class KNNSampler:
                 samples_df = samples_df[samples_df[feat] == row[feat]]
             samples_dfs.append(samples_df)
         samples_df = pd.concat(samples_dfs).sample(n_samples).reset_index(drop=True)
-        samples_df['raid'] = samples_df['raid_0'].astype(str) + '+' + samples_df['raid_1'].astype(str)
-        samples_df.drop(['raid_0', 'raid_1'], 1, inplace=True)
+        samples_df = self.column_transformer.inverse_transform(samples_df)
         return samples_df
 #         return samples_df[self._features], samples_df[self._targets]
