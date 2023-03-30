@@ -60,7 +60,7 @@ def scoring_fn(y_true, y_pred):
 
 
 def get_X_y(df):
-    df[['r0', 'r1']] = df['raid'].str.split('+', 1, expand=True)
+    df[['r0', 'r1']] = df['raid'].str.split('+', n=1, expand=True)
     df.replace({'random': 0, 'sequential': 1, 'read': 0, 'write': 1}, inplace=True)
     return df.drop(["iops", "lat", "id", 'raid', 'device_type', 'offset'], axis=1), df[["iops", "lat"]]
 
@@ -68,13 +68,22 @@ def get_X_y(df):
 def get_predictions(train_df, test_df, model_checkpoint_path):
     X_train, y_train = get_X_y(train_df)
     X_test, y_test = get_X_y(test_df)
-
+    
+    logger.info(f"Starting training. Model`s checkpoint dir: {model_checkpoint_path}")
+    
     model = NormFlowModel(model_checkpoint_path.__str__())
     
     X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=1337)
-    model.fit(X_tr, y_tr, X_val, y_val)
-
-    return model.sample(X_test, n_samples=y_test.shape[0])
+    model.fit(X_tr, y_tr, X_val, y_val, n_epochs=80)
+    
+    logger.info('Acquire predictions')
+    preds = []
+    for i in tqdm(range(X_test.shape[0])):
+        inst = X_test.iloc[i]
+        pred = model.sample(X=inst)
+        preds.append([pred[:, 0], pred[:, 1]])
+        
+    return np.array(preds)
 
 
 def main(train_file, test_file):

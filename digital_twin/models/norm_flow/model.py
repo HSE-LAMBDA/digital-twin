@@ -34,7 +34,7 @@ class NormFlowModel(object):
         self.ckpt_dir = ckpt_dir
         self.nf = None # normalizing flow model for generation
         self.conds = ['iodepth', 'n_jobs', 'block_size', 'read_fraction',
-                      'depth_by_jobs', 'load_type', 'io_type', 'r0', 'r1'] # feature (condition) columns used to generate target
+                      'depth_by_jobs', 'load_type', 'io_type', 'n_disks', 'r0', 'r1'] # feature (condition) columns used to generate target
         
         self.target = ["iops","lat"] # target columns
     
@@ -63,6 +63,7 @@ class NormFlowModel(object):
             n_jobs = X['n_jobs'].values[0]
             r0 = X['r0'].values[0]
             r1 = X['r1'].values[0]
+            n_disks = X['n_disks'].values[0]
         else:
             iodepth = X['iodepth']
             block_size = X['block_size']
@@ -72,14 +73,14 @@ class NormFlowModel(object):
             n_jobs = X['n_jobs']
             r0 = X['r0']
             r1 = X['r1']
+            n_disks = X['n_disks']
 
         depth_by_jobs = iodepth * n_jobs
-        conds = {'depth_by_jobs': depth_by_jobs, 'iodepth': iodepth, 'n_jobs': n_jobs, 
+        conds = {'depth_by_jobs': depth_by_jobs, 'iodepth': iodepth, 'n_jobs': n_jobs, 'n_disks': n_disks,
                  'block_size': block_size, 'read_fraction': read_fraction, 'io_type': io_type, 
                  'load_type': load_type, 'r0': r0, 'r1': r1}
         conds = [[conds[col] for col in self.conds]]*n_samples
-        conds = np.array(conds)
-        conds = pd.DataFrame(conds, columns=self.conds)
+        conds = np.array(conds)        
         conds = self.X_scaler.transform(conds)
         y_pred = self.y_scaler.inverse_transform(self.nf.predict(conds))
         return y_pred
@@ -106,9 +107,8 @@ class NormFlowModel(object):
         if not all([col in y.columns for col in self.target]):
             raise Exception(f"Columns {','.join(self.target)} must present in y")
 
-        X = X[self.conds]
-        y = y[self.target]
-
+        X = X[self.conds].values
+        y = y[self.target]        
         input_size = X.shape[1]
 
         if self.nf is None:
@@ -139,8 +139,7 @@ class NormFlowModel(object):
                                        torch.tensor(X_scaled, dtype=torch.float32, device=DEVICE)),
                           batch_size=batch_size, shuffle=True)
         metrics_best = {'IOPS_MEAPE': np.infty,
-                'Lat_MEAPE': np.infty,
-                'DS_QDA': 1}
+                'Lat_MEAPE': np.infty}
 
         validate = X_val is not None and y_val is not None
         for epoch in tbar:
@@ -173,7 +172,7 @@ class NormFlowModel(object):
                 msg = f"NLL: {loss.detach().cpu():.3f}"
                 if validate:
                     msg += f" IOPS_MEAPE: {metrics_best['IOPS_MEAPE']:.2f} Lat_MEAPE: "
-                    msg += f"{metrics_best['Lat_MEAPE']:.2f} DS_QDA: {metrics_best['DS_QDA']:.2f}"
+                    msg += f"{metrics_best['Lat_MEAPE']:.2f}"
                 
                 tbar.set_description(msg)
                 tbar.refresh()  # to show immediately the update
