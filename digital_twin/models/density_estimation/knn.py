@@ -8,6 +8,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 import numpy as np
 import pandas as pd
+import copy
 
 def default_scoring_fn(y_true, y_pred):
     scaler = StandardScaler()
@@ -43,42 +44,59 @@ class KNNSampler:
                  categories=['load_type', 'io_type', 'device_type'], params_grid={'n_neighbors': [1], 'p': [2]}):
                  #params_grid={'n_neighbors': [1, 2, 5, 7, 10, 15, 20], 'p': [1, 2]}):
         self.column_transformer = YadroColumnsTransformer(columns_to_drop)
-        self.model = Pipeline([
+        model_builder = lambda: Pipeline([
             ('encoding', OneHotEncoder(sparse=False, handle_unknown='infrequent_if_exist')),
             ('scaling', StandardScaler()),
             ('model', GridSearchCV(KNeighborsRegressor(),
                                param_grid=params_grid,
                                scoring=make_scorer(scoring_fn)))
         ])
+        self.model_read, self.model_write = [model_builder() for _ in range(2)]
 
 
     def fit(self, X: pd.DataFrame, y: pd.DataFrame):
         self._orig_features = list(X.columns)
         X = self.column_transformer.transform(X)
-        self._transformed_features = list(X.columns)
+        self._transformed_features = [col for col in X.columns if col not in {'io_type'}]
         self._targets = list(y.columns)
-        df_grouped = pd.concat([X, y], axis=1).groupby(self._transformed_features).apply(lambda df: df.mean())[self._targets].reset_index(drop=False)
-        X_grouped, y_grouped = df_grouped[self._transformed_features], df_grouped[self._targets]
-        self._X = X
-        self._y = y
-        self._X_grouped = X_grouped
-        self._y_grouped = y_grouped
-        self.model.fit(X_grouped, y_grouped)
+        for io_type in ['read', 'write']:
+            X_ = X.query(f'io_type=="{io_type}"').drop('io_type', 1, inplace=False)
+            y_ = y[X.io_type == io_type]
+            df_grouped = pd.concat([X_, y_], axis=1).groupby(self._transformed_features).apply(lambda df: df.mean())[self._targets].reset_index(drop=False)
+            X_grouped, y_grouped = df_grouped[self._transformed_features], df_grouped[self._targets]
+            if io_type == 'read':
+                self._X_read, self._y_read, self._X_grouped_read, self._y_grouped_read = X_, y_, X_grouped, y_grouped
+                model = self.model_read
+            else:
+                self._X_write, self._y_write, self._X_grouped_write, self._y_grouped_write = X_, y_, X_grouped, y_grouped
+                model = self.model_write
+            if X_grouped.shape[0] > 0:
+                model.fit(X_grouped, y_grouped)
 
     def sample(self, n_samples:int, **configuration):
+        io_type = configuration['io_type']
+        if io_type == 'read' and self._X_read.shape[0] == 0:
+            io_type = 'write'
+        elif io_type == 'write' and self._X_write.shape[0] == 0:
+            io_type == 'read'
         X_test = np.array([configuration[k] for k in self._orig_features])
         X_test = np.expand_dims(X_test, 0)
         X_test_transformed = pd.DataFrame(X_test, columns=self._orig_features).transform(pd.to_numeric, errors='ignore', downcast='float')
+        X_test_transformed.drop('io_type', 1, inplace=True)
         X_test_transformed = self.column_transformer.transform(X_test_transformed)
-        if isinstance(self.model, Pipeline):
-            for name, transform in self.model.steps[:-1]:
+        model = {'read': self.model_read, 'write': self.model_write}[io_type]
+        if isinstance(model, Pipeline):
+            for name, transform in model.steps[:-1]:
                 X_test_transformed = transform.transform(X_test_transformed)
-            neigh_inds = self.model.steps[-1][-1].best_estimator_.kneighbors(X_test_transformed, return_distance=False)
+            neigh_inds = model.steps[-1][-1].best_estimator_.kneighbors(X_test_transformed, return_distance=False)
         else:
-            neigh_inds = self.model.kneighbors(X_test_transformed, return_distance=False)
-        df = pd.concat([self._X, self._y], axis=1)
+            neigh_inds = model.kneighbors(X_test_transformed, return_distance=False)
+        X = {'read': self._X_read, 'write': self._X_write}[io_type]
+        y = {'read': self._y_read, 'write': self._y_write}[io_type]
+        df = pd.concat([X, y], axis=1)
         neigh_inds = np.reshape(neigh_inds, (-1))
-        neigh_df = self._X_grouped.iloc[neigh_inds]
+        X_grouped = {'read': self._X_grouped_read, 'write': self._X_grouped_write}[io_type]
+        neigh_df = X_grouped.iloc[neigh_inds]
         samples_dfs = []
         
         for _, row in neigh_df.iterrows():
@@ -88,5 +106,7 @@ class KNNSampler:
             samples_dfs.append(samples_df)
         samples_df = pd.concat(samples_dfs).sample(n_samples).reset_index(drop=True)
         samples_df = self.column_transformer.inverse_transform(samples_df)
+        samples_df['io_type'] = io_type
+        #import pdb; pdb.set_trace()
         return samples_df
 #         return samples_df[self._features], samples_df[self._targets]

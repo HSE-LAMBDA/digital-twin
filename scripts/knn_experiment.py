@@ -98,3 +98,5 @@ if __name__ == "__main__":
     train_files = list(args.data.rglob("**/train_*.csv"))
     test_files = list(args.data.rglob("**/test_*.csv"))
     process_map(main, train_files, test_files)
+    #for train_file, test_file in zip(train_files, test_files):
+    #    main(train_file, test_file)

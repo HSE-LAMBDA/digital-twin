@@ -139,16 +139,7 @@ def main(files: list[Path]):
         root_path = file.parent.parent.parent / "metrics" / file.parent.name
         root_path.mkdir(parents=True, exist_ok=True)
         this_group_df.to_csv(root_path / f"metrics_{file.stem}.csv", index=False)
-        this_group_df.agg(
-            {
-                "MMD (RBF)": agg,
-                "FD": agg,
-                "MEAPE_IOPS": agg,
-                "MEAPE_LAT": agg,
-                "SEAPE_IOPS": agg,
-                "SEAPE_LAT": agg,
-            },
-        ).to_csv(
+        this_group_df_agg = this_group_df[["MMD (RBF)", "FD", "MEAPE_IOPS", "MEAPE_LAT", "SEAPE_IOPS", "SEAPE_LAT"]].agg(agg).T.apply(lambda x: (x[0], x[1]), 1).to_csv(
             root_path / f"metrics_agg_{file.stem}.csv",
             index=True,
             header=["(mean, std)"],
