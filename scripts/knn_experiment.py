@@ -51,7 +51,7 @@ def scoring_fn(y_true, y_pred):
 
 
 def get_X_y(df):
-    return df.drop(["iops", "lat", "id"], axis=1), df[["iops", "lat"]]
+    return df.drop(["iops", "lat", "id", "device_type", "offset"], axis=1), df[["iops", "lat"]]
 
 def get_predictions(train_df, test_df, model_checkpoint_path):
     X_train, y_train = get_X_y(train_df)
