@@ -102,7 +102,7 @@ def get_name_from_cond(cond: dict):
 
 
 def agg(x):
-    return np.mean(x[0]), np.mean(x[1])
+    return np.mean(x[0]), np.sqrt(np.mean(np.pow(ex[1], 2)))
 
 
 def main(files: list[Path]):
