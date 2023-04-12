@@ -104,8 +104,7 @@ class KNNSampler:
             samples_dfs.append(samples_df)
         samples_df = pd.concat(samples_dfs).sample(n_samples).reset_index(drop=True)
         samples_df = self.column_transformer.inverse_transform(samples_df)
-        samples_df['io_type'] = io_type
-        samples_df['load_type'] = samples_df.load_type.apply(lambda x: 'random' if x==0 else 'sequential')
-        #import pdb; pdb.set_trace()
-        return samples_df
-#         return samples_df[self._features], samples_df[self._targets]
+        output_df = pd.DataFrame([configuration]*n_samples)
+        output_df['iops'] = samples_df['iops']
+        output_df['lat'] = samples_df['lat']
+        return output_df
