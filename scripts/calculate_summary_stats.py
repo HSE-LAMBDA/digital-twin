@@ -102,7 +102,8 @@ def get_name_from_cond(cond: dict):
 
 
 def agg(x):
-    return np.mean(x[0]), np.mean(x[1])
+    t_x = transpose(x)
+    return np.mean(t_x[0]), np.mean(t_x[1])
 
 
 def main(files: list[Path]):

@@ -5,11 +5,9 @@ from pathlib import Path
 
 import pandas as pd
 from sklearn.metrics import make_scorer
-from sklearn.model_selection import GridSearchCV
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from tqdm.contrib.concurrent import process_map
+from digital_twin.models.density_estimation.knn import KNNSampler
+import warnings; warnings.filterwarnings('ignore')
 
 from digital_twin.performance_metrics import ape
 
@@ -48,54 +46,59 @@ def parse_args():
     return args
 
 
+def match_files(train_files, test_files):
+    train_files_new = []
+    test_files_new = []
+    for atrain in train_files:
+        train_files_new.append(atrain)
+        for atest in test_files:
+            if str(atrain).split("train_")[-1] == str(atest).split("test_")[-1]:
+                test_files_new.append(atest)
+                break
+    return train_files_new, test_files_new
+
+
 def scoring_fn(y_true, y_pred):
     return -ape(y_true.values, y_pred).mean()
 
 
 def get_X_y(df):
-    return df.drop(["iops", "lat", "id"], axis=1), df[["iops", "lat"]]
-
+    return df.drop(["iops", "lat", "id", "device_type", "offset"], axis=1), df[["iops", "lat"]]
 
 def get_predictions(train_df, test_df, model_checkpoint_path):
     X_train, y_train = get_X_y(train_df)
     X_test, y_test = get_X_y(test_df)
+    id_test = test_df.id
 
-    model = Pipeline(
-        [
-            ("encoding", OneHotEncoder(sparse_output=False)),
-            ("scaling", StandardScaler()),
-            (
-                "model",
-                GridSearchCV(
-                    KNeighborsRegressor(),
-                    param_grid={"n_neighbors": [2, 5, 7, 10, 15, 20], "p": [1, 2]},
-                    scoring=make_scorer(scoring_fn),
-                ),
-            ),
-        ]
-    )
+    model = KNNSampler()
 
     model.fit(X_train, y_train)
     with open(model_checkpoint_path, "wb") as f:
         pickle.dump(model, f)
-
-    return model.predict(X_test)
-
+        
+    dfs = []
+    for id_, conf, gt in zip(list(id_test), X_test.to_dict(orient='records'), y_test.to_dict(orient='records')):
+        samples_df = model.sample(n_samples=1, **conf)
+        samples_df['id'] = id_
+        samples_df.rename(columns={'lat': 'gen_lat', 'iops': 'gen_iops'}, inplace=True)
+        samples_df['iops'] = gt['iops']
+        samples_df['lat'] = gt['lat']
+        dfs.append(samples_df)
+    res = pd.concat(dfs).reset_index(drop=True)
+    return res
 
 def main(train_file, test_file):
+    print("Train: %s \nTest: %s \n" % (train_file, test_file))
     train_df = pd.read_csv(train_file)
     test_df = pd.read_csv(test_file)
     (root_dir := args.model_checkpoint_path / f"{train_file.parent.name}").mkdir(
         exist_ok=True
     )
 
-    this_prediction = get_predictions(
+    test_df = get_predictions(
         train_df,
         test_df,
         model_checkpoint_path=root_dir / f"knn_{train_file.stem}.pkl",
-    )
-    test_df = test_df.assign(
-        gen_iops=this_prediction[:, 0], gen_lat=this_prediction[:, 1]
     )
 
     (root_dir := args.result_path / f"{train_file.parent.name}").mkdir(exist_ok=True, parents=True)
@@ -107,4 +110,7 @@ if __name__ == "__main__":
     args = parse_args()
     train_files = list(args.data.rglob("**/train_*.csv"))
     test_files = list(args.data.rglob("**/test_*.csv"))
+    train_files, test_files = match_files(train_files, test_files)
     process_map(main, train_files, test_files)
+    #for train_file, test_file in zip(train_files, test_files):
+    #    main(train_file, test_file)
