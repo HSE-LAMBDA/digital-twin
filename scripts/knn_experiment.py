@@ -46,12 +46,24 @@ def parse_args():
     return args
 
 
+def match_files(train_files, test_files):
+    train_files_new = []
+    test_files_new = []
+    for atrain in train_files:
+        train_files_new.append(atrain)
+        for atest in test_files:
+            if str(atrain).split("train_")[-1] == str(atest).split("test_")[-1]:
+                test_files_new.append(atest)
+                break
+    return train_files_new, test_files_new
+
+
 def scoring_fn(y_true, y_pred):
     return -ape(y_true.values, y_pred).mean()
 
 
 def get_X_y(df):
-    return df.drop(["iops", "lat", "id"], axis=1), df[["iops", "lat"]]
+    return df.drop(["iops", "lat", "id", "device_type", "offset"], axis=1), df[["iops", "lat"]]
 
 def get_predictions(train_df, test_df, model_checkpoint_path):
     X_train, y_train = get_X_y(train_df)
@@ -76,6 +88,7 @@ def get_predictions(train_df, test_df, model_checkpoint_path):
     return res
 
 def main(train_file, test_file):
+    print("Train: %s \nTest: %s \n" % (train_file, test_file))
     train_df = pd.read_csv(train_file)
     test_df = pd.read_csv(test_file)
     (root_dir := args.model_checkpoint_path / f"{train_file.parent.name}").mkdir(
@@ -97,6 +110,7 @@ if __name__ == "__main__":
     args = parse_args()
     train_files = list(args.data.rglob("**/train_*.csv"))
     test_files = list(args.data.rglob("**/test_*.csv"))
+    train_files, test_files = match_files(train_files, test_files)
     process_map(main, train_files, test_files)
     #for train_file, test_file in zip(train_files, test_files):
     #    main(train_file, test_file)

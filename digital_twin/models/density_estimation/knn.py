@@ -27,6 +27,7 @@ class YadroColumnsTransformer(BaseEstimator, TransformerMixin):
         X = X[[col for col in X.columns if col not in self.columns_to_drop]]
         X['raid_0'] = X.raid.apply(lambda x: x.split('+')[0]).astype(int)
         X['raid_1'] = X.raid.apply(lambda x: x.split('+')[1]).astype(int)
+        X['load_type'] = X.load_type.apply(lambda x: 0 if x=='random' else 1)
         if y is None:
             return X.drop(['raid'], 1)
         return X.drop(['raid'], 1), y
@@ -41,15 +42,12 @@ class YadroColumnsTransformer(BaseEstimator, TransformerMixin):
 
 class KNNSampler:
     def __init__(self, scoring_fn=default_scoring_fn, columns_to_drop=['device_type'],
-                 categories=['load_type', 'io_type', 'device_type'], params_grid={'n_neighbors': [1], 'p': [2]}):
+                 categories=['load_type', 'io_type', 'device_type'], n_neighbors=1, p=2):
                  #params_grid={'n_neighbors': [1, 2, 5, 7, 10, 15, 20], 'p': [1, 2]}):
         self.column_transformer = YadroColumnsTransformer(columns_to_drop)
         model_builder = lambda: Pipeline([
-            ('encoding', OneHotEncoder(sparse=False, handle_unknown='infrequent_if_exist')),
             ('scaling', StandardScaler()),
-            ('model', GridSearchCV(KNeighborsRegressor(),
-                               param_grid=params_grid,
-                               scoring=make_scorer(scoring_fn)))
+            ('model', KNeighborsRegressor(n_neighbors=n_neighbors, p=p))
         ])
         self.model_read, self.model_write = [model_builder() for _ in range(2)]
 
@@ -88,7 +86,7 @@ class KNNSampler:
         if isinstance(model, Pipeline):
             for name, transform in model.steps[:-1]:
                 X_test_transformed = transform.transform(X_test_transformed)
-            neigh_inds = model.steps[-1][-1].best_estimator_.kneighbors(X_test_transformed, return_distance=False)
+            neigh_inds = model.steps[-1][-1].kneighbors(X_test_transformed, return_distance=False)
         else:
             neigh_inds = model.kneighbors(X_test_transformed, return_distance=False)
         X = {'read': self._X_read, 'write': self._X_write}[io_type]
@@ -106,7 +104,7 @@ class KNNSampler:
             samples_dfs.append(samples_df)
         samples_df = pd.concat(samples_dfs).sample(n_samples).reset_index(drop=True)
         samples_df = self.column_transformer.inverse_transform(samples_df)
-        samples_df['io_type'] = io_type
-        #import pdb; pdb.set_trace()
-        return samples_df
-#         return samples_df[self._features], samples_df[self._targets]
+        output_df = pd.DataFrame([configuration]*n_samples)
+        output_df['iops'] = samples_df['iops']
+        output_df['lat'] = samples_df['lat']
+        return output_df
