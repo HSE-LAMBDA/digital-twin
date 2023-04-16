@@ -117,7 +117,7 @@ def main(files: list[Path]):
         for df in dfs
     ]
     
-    get_aggregated_stats(dfs)
+    # get_aggregated_stats(dfs)
     for grouped_df, file in zip(groupded_dfs, files):
         results = []
         for g, df in grouped_df:
