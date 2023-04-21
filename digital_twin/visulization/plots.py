@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from pathlib import Path
 import textwrap as twp
+import warnings
 
 
 class Figures:

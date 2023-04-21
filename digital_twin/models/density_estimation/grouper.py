@@ -1,15 +1,25 @@
+import random
+
 import pandas as pd
 from .gmm import GMM
 import numpy as np
 from tqdm import tqdm
 
+def get_subset(l: list, ratio: float = 1):
+    if not (0 < ratio <= 1):
+        raise "Ratio should be between [0, 1]"
+    sample_size = int(len(l) * ratio)
+    return random.sample(l, k=sample_size)
+    
+    
 
 class Grouper:
     """Group parameters."""
-
+    
     @staticmethod
-    def transform(X, y):
-        groups = X.groupby(X.columns.tolist())
+    def transform(X, y, data_ratio=1):
+        groups = list(X.groupby(X.columns.tolist()))
+        groups = get_subset(groups, data_ratio)
         # keep track of the indices of the groups useful for performance evaluation
         grouped_indices = []
         _x = []

@@ -39,6 +39,12 @@ def parse_args():
         default=False,
         help="Run grid search.",
     )
+    parser.add_argument(
+        "--data-ratio",
+        type=float,
+        default=1.,
+        help="Use this to train on a subset of the dataset"
+    )
     args = parser.parse_args()
     if not args.data.exists():
         raise FileNotFoundError(f"Data file {args.data} not found.")
@@ -101,8 +107,9 @@ def get_predictions(
     test_df,
     model_checkpoint_path,
     grid_search=False,
+    train_data_ratio=1,
 ):
-    X_train, y_train, _, _ = Grouper.transform(*get_X_y(train_df))
+    X_train, y_train, _, _ = Grouper.transform(*get_X_y(train_df), data_ratio=train_data_ratio)
     X_test, y_test, test_indices, _ = Grouper.transform(*get_X_y(test_df))
     X_train = preprocess_X(X_train)
     X_test = preprocess_X(X_test)
@@ -128,6 +135,7 @@ def main(train_file, test_file):
     train_df = pd.read_csv(train_file)
     test_df = pd.read_csv(test_file)
 
+
     (root_dir := args.model_checkpoint_path / f"{train_file.parent.name}").mkdir(
         exist_ok=True
     )
@@ -136,6 +144,7 @@ def main(train_file, test_file):
         test_df,
         root_dir / f"catboost_{train_file.stem}.cbm",
         grid_search=True if args.grid_search else False,
+        train_data_ratio=args.data_ratio
     )
 
     (root_dir := args.result_path / f"{train_file.parent.name}").mkdir(
@@ -153,3 +162,5 @@ if __name__ == "__main__":
     test_files = list(args.data.rglob("test_*.csv"))
 
     process_map(main, train_files, test_files)
+    # main(train_files[0], test_files[0])
+    
