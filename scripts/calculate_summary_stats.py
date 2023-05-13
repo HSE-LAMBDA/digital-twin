@@ -131,7 +131,7 @@ def _bootstrap_metric(x, n_iters=1000):
 
 
 def agg(x):
-    t_x = np.array(transpose(x))
+    t_x = np.array(transpose(x))[0]
     q = np.quantile(t_x, 0.95)
     mu, std = _bootstrap_metric(t_x[t_x<=q])
     return mu, std
