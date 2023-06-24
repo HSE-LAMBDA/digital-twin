@@ -55,6 +55,18 @@ def nice_format(x: dict):
     return {k: f"{mean:.2f} ± {std:.2f}" for k, (mean, std) in x.items()}
 
 
+from sklearn.covariance import EllipticEnvelope
+from sklearn.ensemble import IsolationForest
+def remove_outliers(x, y, q=0.05):
+    ee = EllipticEnvelope(contamination=q)
+    #ee = IsolationForest(contamination=q)
+    xy = np.concatenate((x.reshape(-1, 1), y.reshape(-1, 1)), axis=1)
+    lab = ee.fit_predict(xy)
+    xy = xy[lab==1]
+    # print(len(y), len(xy))
+    return xy[:, 0], xy[:, 1]
+
+
 def metrics_eval(target: np.array, prediction: np.array):
     target_iops, target_lat, gen_iops, gen_lat = (
         target[:, 0],
@@ -62,6 +74,13 @@ def metrics_eval(target: np.array, prediction: np.array):
         prediction[:, 0],
         prediction[:, 1],
     )
+    target_iops, target_lat = remove_outliers(target_iops, target_lat)
+    gen_iops, gen_lat = remove_outliers(gen_iops, gen_lat)
+    n = min(len(target_iops), len(gen_iops))
+    target_iops, target_lat = target_iops[:n], target_lat[:n]
+    gen_iops, gen_lat = gen_iops[:n], gen_lat[:n]
+    target = np.concatenate((target_iops.reshape(-1, 1), target_lat.reshape(-1, 1)), axis=1)
+    prediction = np.concatenate((gen_iops.reshape(-1, 1), gen_lat.reshape(-1, 1)), axis=1)
     return {
         "MMD (RBF)": mmd_rbf(target, prediction),
         "FD": fd(target, prediction),
@@ -101,9 +120,21 @@ def get_name_from_cond(cond: dict):
     return {NICE_NAMES.get(k, k): NICE_NAMES.get(v, str(v)) for k, v in cond.items()}
 
 
+from sklearn.utils import resample
+def _bootstrap_metric(x, n_iters=1000):
+    scores = []
+    for i in range(n_iters):
+        x_boot = resample(x, random_state=i+1)
+        scores.append(x_boot.mean())
+    scores = np.array(scores)
+    return scores.mean(axis=0), scores.std(axis=0)
+
+
 def agg(x):
-    t_x = transpose(x)
-    return np.mean(t_x[0]), np.mean(t_x[1])
+    t_x = np.array(transpose(x))[0]
+    q = np.quantile(t_x, 0.95)
+    mu, std = _bootstrap_metric(t_x[t_x<=q])
+    return mu, std
 
 
 def main(files: list[Path]):
