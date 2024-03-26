@@ -35,22 +35,31 @@ cd digital-twin && pip install .
 ```
 
 ## Project structure
-
+```
   .
-    ├── digital_twin            # 
-    │   ├── models
-    |   |   ├── density estimation
-    |   |   |    ├── gmm.py
-    |   |   |    ├── knn.py
-    |   |   |    ├── regressor.py
-    |   |   |    ├── grouper.py
-    |   |   ├── norm_flow
-    |   |   |   ├── utils
-    |   |   |   ├── model.py
-    |   |
-    ├── docs                    # Documentation files (alternatively `doc`)
-    ├── src                     # Source files (alternatively `lib` or `app`)
-    ├── test                    # Automated tests (alternatively `spec` or `tests`)
-    ├── tools                   # Tools and utilities
-    ├── LICENSE
-    └── README.md
+    ├── digital_twin                                        #  Directory with a library source code
+    │   ├── models                                          #
+    |   |   ├── density estimation                          #
+    |   |   |    ├── gmm.py                                 #
+    |   |   |    ├── knn.py                                 #
+    |   |   |    ├── regressor.py                           #
+    |   |   |    ├── grouper.py                             #
+    |   |   ├── norm_flow                                   #  Directory for normalized-flow-based digital twin model
+    |   |   |    ├── utils                                  #  
+    |   |   |    ├── model.py                               #  
+    |   ├── performance metrics                             #
+    |   |   ├── fd.py                                       #  Frechet Distance metric
+    |   |   ├── misc.py                                     # 
+    |   |   ├── mmd.py                                      #  Maximum Mean Discrepancy metric 
+    |   ├── visualization                                   #
+    |   |   ├── plot.py                                     #  
+    |   ├── data.py                                         #
+    ├── model_checkpoints                                   #
+    ├── results                                             #  Directory with experiments results
+    ├── scripts                                             #  Scripts to reproduce experiments
+    |   ├── calculate_summary_stats.py                      #  This script calculates metrics and plot prediction plots based on prediction csv files
+    |   ├── denesity_estimation_experiment.py               #
+    |   ├── generate_train_test_split.py                    #
+    |   ├── knn_experiment.py                               # 
+    |   ├── nf_experiment.py                                #  This script is used for experiment with normalized flow
+```
