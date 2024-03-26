@@ -34,5 +34,23 @@ git clone https://github.com/HSE-LAMBDA/digital-twin.git
 cd digital-twin && pip install .
 ```
 
+## Project structure
 
-
+  .
+    ├── digital_twin            # 
+    │   ├── models
+    |   |   ├── density estimation
+    |   |   |    ├── gmm.py
+    |   |   |    ├── knn.py
+    |   |   |    ├── regressor.py
+    |   |   |    ├── grouper.py
+    |   |   ├── norm_flow
+    |   |   |   ├── utils
+    |   |   |   ├── model.py
+    |   |
+    ├── docs                    # Documentation files (alternatively `doc`)
+    ├── src                     # Source files (alternatively `lib` or `app`)
+    ├── test                    # Automated tests (alternatively `spec` or `tests`)
+    ├── tools                   # Tools and utilities
+    ├── LICENSE
+    └── README.md
