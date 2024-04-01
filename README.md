@@ -20,7 +20,11 @@ models, and uncertainty estimation methods in machine learning.
 ## Citation
 
 ```
-@article{
+@article{al2023performance,
+  title={Performance Modeling of Data Storage Systems using Generative Models},
+  author={Al-Maeeni, Abdalaziz Rashid and Temirkhanov, Aziz and Ryzhikov, Artem and Hushchyn, Mikhail},
+  journal={arXiv preprint arXiv:2307.02073},
+  year={2023}
 }
 ```
 
