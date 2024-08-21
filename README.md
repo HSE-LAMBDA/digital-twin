@@ -35,7 +35,7 @@ models, and uncertainty estimation methods in machine learning.
 git clone https://github.com/HSE-LAMBDA/digital-twin.git
 
 # install package
-cd digital-twin && pip install .
+cd digital-twin && pip install -e .
 ```
 
 ## Project structure
