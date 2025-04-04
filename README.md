@@ -25,6 +25,27 @@ or using BibTeX:
   pages={49643-49658},
   doi={10.1109/ACCESS.2025.3552409}}
 ```
+## Datasets
+
+All datasets used in the paper are in [dataset.tar.gz](https://github.com/HSE-LAMBDA/digital-twin/blob/master/dataset.tar.gz) archive with the following structure:
+
+```bash
+dataset
+├── cache
+│   ├── cache.csv
+│   ├── test_cache.csv
+│   └── train_cache.csv
+└── pools
+    ├── hdd_sequential.csv
+    ├── ssd_random.csv
+    ├── ssd_sequential.csv
+    ├── test_hdd_sequential.csv
+    ├── test_ssd_random.csv
+    ├── test_ssd_sequential.csv
+    ├── train_hdd_sequential.csv
+    ├── train_ssd_random.csv
+    └── train_ssd_sequential.csv
+```
 
 ## Instalation
 
