@@ -1,31 +1,29 @@
-# Digital Twin
+# Performance Modeling of Data Storage Systems Using Generative Models
 
-This is the official repository for "Performance Modeling of Data Storage Systems using Generative Models" paper
+This is the official repository for paper "Performance Modeling of Data Storage Systems using Generative Models"  in IEEE Access [[journal]](https://doi.org/10.1109/ACCESS.2025.3552409) [[arxiv]](https://arxiv.org/abs/2307.02073).
 
 ## Abstract
-High-precision modeling of systems is one of the main areas of industrial data
-analysis. Models of systems, their digital twins, are used to predict their behavior under various
-conditions. We have developed several models of a storage system using machine
-learning-based generative models. The system consists of several components: hard disk drive
-(HDD) and solid-state drive (SSD) storage pools with different RAID schemes and cache. Each
-storage component is represented by a probabilistic model that describes the probability
-distribution of the component performance in terms of IOPS and latency, depending on their
-configuration and external data load parameters. The results of the experiments demonstrate the
-errors of 4–10 % for IOPS and 3–16 % for latency predictions depending on the components and
-models of the system. The predictions show up to 0.99 Pearson correlation with Little’s law,
-which can be used for unsupervised reliability checks of the models. In addition, we present
-novel data sets that can be used for benchmarking regression algorithms, conditional generative
-models, and uncertainty estimation methods in machine learning.
+High-precision systems modeling is one of the main areas of industrial data analysis. Models of systems, their digital twins, are used to predict their behavior under various conditions. In this study, we developed several models of a storage system using machine learning-based generative models to predict performance metrics such as IOPS and latency. The models achieve prediction errors ranging from 4%–10% for IOPS and 3%–16% for latency and demonstrate high correlation (up to 0.99) with observed data. By leveraging Little’s law for validation, these models provide reliable performance estimates. Our results outperform conventional regression methods, offering a vendor-agnostic approach for simulating data storage system behavior. These findings have significant applications for predictive maintenance, performance optimization, and uncertainty estimation in storage system design.
 
 ## Citation
+If you use the scripts or datasets in a scientific publication, we would appreciate citations to the paper:
 
 ```
-@article{al2023performance,
-  title={Performance Modeling of Data Storage Systems using Generative Models},
-  author={Al-Maeeni, Abdalaziz Rashid and Temirkhanov, Aziz and Ryzhikov, Artem and Hushchyn, Mikhail},
-  journal={arXiv preprint arXiv:2307.02073},
-  year={2023}
-}
+A. R. Al-Maeeni, A. Temirkhanov, A. Ryzhikov and M. Hushchyn, "Performance Modeling of Data Storage Systems Using Generative Models," in IEEE Access, vol. 13, pp. 49643-49658, 2025, doi: 10.1109/ACCESS.2025.3552409
+```
+
+or using BibTeX:
+
+```
+@ARTICLE{10930879,
+  author={Al-Maeeni, Abdalaziz R. and Temirkhanov, Aziz and Ryzhikov, Artem and Hushchyn, Mikhail},
+  journal={IEEE Access}, 
+  title={Performance Modeling of Data Storage Systems Using Generative Models}, 
+  year={2025},
+  volume={13},
+  number={},
+  pages={49643-49658},
+  doi={10.1109/ACCESS.2025.3552409}}
 ```
 
 ## Instalation
