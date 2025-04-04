@@ -46,6 +46,22 @@ dataset
     ├── train_ssd_random.csv                     # Train sample from the full SSD pool dataset.
     └── train_ssd_sequential.csv                 # Train sample from the full SSD pool dataset.
 ```
+### Features description
+**iops**: (target) the number of input and output (IO) operations per second; \
+**lat**: (target) the average latencies of input and output operations; \
+**block_size**: the size of one data block processed per one IO operation; \
+**n_jobs**: the number of processes in parallel used to process a IO dataload; \
+**iodepth**: the IO queue size per job; \
+**read_fraction**: the fraction of read operations in the dataload; \
+**load_type**: sequential or random dataload; \
+**io_type**: read or write operations; \
+**raid**: RAID scheme used in HDD or SSD pools. It is defined by the number of data (K) and parity (M) blocks in K+M format; \
+**n_disks**: the number of HDD or SSD disks used in the pools; \
+**device_type**: name of a device. Can be ignored; \
+**offset**: constant value. Can be ignored; \
+**id**: IDs of dataloads in the samples.
+
+
 
 ## Instalation
 
