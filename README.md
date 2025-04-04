@@ -25,26 +25,26 @@ or using BibTeX:
   pages={49643-49658},
   doi={10.1109/ACCESS.2025.3552409}}
 ```
-## Datasets
+## Dataset
 
 All datasets used in the paper are in [dataset.tar.gz](https://github.com/HSE-LAMBDA/digital-twin/blob/master/dataset.tar.gz) archive with the following structure:
 
 ```bash
 dataset
 ├── cache
-│   ├── cache.csv
-│   ├── test_cache.csv
-│   └── train_cache.csv
+│   ├── cache.csv                                # Full dataset for the cache under the random dataload.
+│   ├── test_cache.csv                           # Test sample from the full cache dataset.
+│   └── train_cache.csv                          # Train sample from the full cache dataset.
 └── pools
-    ├── hdd_sequential.csv
-    ├── ssd_random.csv
-    ├── ssd_sequential.csv
-    ├── test_hdd_sequential.csv
-    ├── test_ssd_random.csv
-    ├── test_ssd_sequential.csv
-    ├── train_hdd_sequential.csv
-    ├── train_ssd_random.csv
-    └── train_ssd_sequential.csv
+    ├── hdd_sequential.csv                       # Full dataset for the HDD pool under the sequential dataload.
+    ├── ssd_random.csv                           # Full dataset for the SSD pool under the random dataload.
+    ├── ssd_sequential.csv                       # Full dataset for the SSD pool under the sequential dataload.
+    ├── test_hdd_sequential.csv                  # Test sample from the full HDD pool dataset.
+    ├── test_ssd_random.csv                      # Test sample from the full SSD pool dataset.
+    ├── test_ssd_sequential.csv                  # Test sample from the full SSD pool dataset.
+    ├── train_hdd_sequential.csv                 # Train sample from the full HDD pool dataset.
+    ├── train_ssd_random.csv                     # Train sample from the full SSD pool dataset.
+    └── train_ssd_sequential.csv                 # Train sample from the full SSD pool dataset.
 ```
 
 ## Instalation
