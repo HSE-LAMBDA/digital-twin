@@ -61,7 +61,7 @@ dataset
 **offset**: constant value. Can be ignored; \
 **id**: IDs of dataloads in the samples.
 
-
+The dataset is also available on [Kaggle](https://www.kaggle.com/datasets/mikhailhushchyn/dss-performance).
 
 ## Instalation
 
